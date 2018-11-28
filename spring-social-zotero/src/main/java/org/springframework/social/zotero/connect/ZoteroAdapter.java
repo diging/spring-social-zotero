@@ -29,7 +29,6 @@ public class ZoteroAdapter implements ApiAdapter<Zotero> {
 
     @Override
     public UserProfile fetchUserProfile(Zotero api) {
-//        UserInfo profile = api.userOperations().getUserInfo();
         return new UserProfileBuilder().setName("test")
                 .setUsername(api.getUserId()).setEmail("email")
                 .setFirstName("first name")

@@ -1,6 +1,6 @@
 package org.springframework.social.zotero.api.impl;
 
-import org.springframework.social.zotero.api.ItemsInfo;
+import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemsOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,7 +18,7 @@ public class ItemsTemplate extends AbstractZoteroOperations implements ItemsOper
      * @see org.springframework.social.zotero.api.impl.ItemsOperations#getItemsInfo()
      */
     @Override
-    public ItemsInfo getItemsInfo() {
-        return restTemplate.getForObject(buildUri("items", true), ItemsInfo.class);
+    public Item[] getItemsInfo() {
+        return restTemplate.getForObject(buildUri("items", true), Item[].class);
     }
 }

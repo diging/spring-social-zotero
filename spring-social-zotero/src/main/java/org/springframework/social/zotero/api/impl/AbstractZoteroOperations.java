@@ -12,6 +12,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 abstract class AbstractZoteroOperations implements ZoteroOperations {
+    
+    public final static String HEADER_TOTAL_RESULTS = "Total-Results";
 
     private final boolean isUserAuthorized;
     private String apiUrlBase;

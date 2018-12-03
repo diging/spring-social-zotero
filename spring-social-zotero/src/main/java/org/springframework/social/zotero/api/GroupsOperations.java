@@ -8,5 +8,5 @@ public interface GroupsOperations {
 
     void setUserId(String userId);
 
-    Item[] getGroupItemsTop(String groupId, int start, int numberOfItems);
+    ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems);
 }

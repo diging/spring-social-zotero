@@ -23,8 +23,13 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      * java.lang.String)
      */
     @Override
-    public Item[] getGroupItems(String groupId) {
-        return restTemplate.getForObject(buildGroupUri("items", groupId), Item[].class);
+    public Item[] getGroupItems(String groupId, int start, int numberOfItems) {
+        return restTemplate.getForObject(buildGroupUri("items", groupId, start, numberOfItems), Item[].class);
+    }
+    
+    @Override
+    public Item[] getGroupItemsTop(String groupId, int start, int numberOfItems) {
+        return restTemplate.getForObject(buildGroupUri("items/top", groupId, start, numberOfItems), Item[].class);
     }
 
     @Override

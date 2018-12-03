@@ -21,4 +21,9 @@ public class ItemsTemplate extends AbstractZoteroOperations implements ItemsOper
     public Item[] getItemsInfo() {
         return restTemplate.getForObject(buildUri("items", true), Item[].class);
     }
+    
+//    @Override
+//    public Item[] getItemsInfo(String groupOrUserId) {
+//        return restTemplate.getForObject(buildUri(groupOrUserId + "/items", false), Item[].class);
+//    }
 }

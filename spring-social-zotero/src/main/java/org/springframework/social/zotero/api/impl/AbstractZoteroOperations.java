@@ -1,6 +1,9 @@
 package org.springframework.social.zotero.api.impl;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.social.MissingAuthorizationException;
 import org.springframework.social.support.URIBuilder;
@@ -25,8 +28,21 @@ abstract class AbstractZoteroOperations implements ZoteroOperations {
         }
     }
 
-    protected URI buildGroupUri(String path, String groupId) {
-        return URIBuilder.fromUri(String.format("%sgroups/%s/%s", apiUrlBase, groupId, path)).build();
+    protected URI buildGroupUri(String path, String groupId, int start, int numberOfItems) {
+        String url = String.format("%sgroups/%s/%s", apiUrlBase, groupId, path);
+        Map<String, Integer> queryParams = new HashMap<>();
+        if (start > -1) {
+            queryParams.put("start", start);
+        }
+        if (numberOfItems > 0) {
+            queryParams.put("limit", numberOfItems);
+        }
+        if (queryParams.size() > 0) {
+            String queryString = String.join("&", queryParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.toList()));
+            url = url + "?" + queryString;
+        }
+        
+        return URIBuilder.fromUri(url).build();
     }
 
     protected URI buildUri(String path, boolean userApi) {

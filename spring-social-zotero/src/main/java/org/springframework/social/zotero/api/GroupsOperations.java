@@ -9,4 +9,6 @@ public interface GroupsOperations {
     void setUserId(String userId);
 
     ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems);
+
+    Item getGroupItem(String groupId, String itemKey);
 }

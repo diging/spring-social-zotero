@@ -54,4 +54,10 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public Group[] getGroups() {
         return restTemplate.getForObject(buildUri("users/" + getUserId() + "/groups", false), Group[].class);
     }
+    
+    @Override
+    public Item getGroupItem(String groupId, String itemKey) {
+        String url = String.format("groups/%s/%s/%s", groupId, "items", itemKey);
+        return restTemplate.getForObject(buildUri(url, false), Item.class);
+    }
 }

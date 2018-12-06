@@ -1,5 +1,8 @@
 package org.springframework.social.zotero.api.impl;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.core.ParameterizedTypeReference;
@@ -13,8 +16,11 @@ import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ZoteroResponse;
 import org.springframework.web.client.RestTemplate;
 
-public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
+    
     private final RestTemplate restTemplate;
 
     public GroupsTemplate(RestTemplate restTemplate, boolean isAuthorizedForUser, String providerUrl, String userId) {
@@ -51,8 +57,43 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public Group[] getGroups() {
-        return restTemplate.getForObject(buildUri("users/" + getUserId() + "/groups", false), Group[].class);
+    public ZoteroResponse<Group> getGroups() {
+        ZoteroResponse<Group> zoteroResponse = new ZoteroResponse<>();
+        ResponseEntity<Group[]> response = restTemplate.exchange(
+                buildUri("users/" + getUserId() + "/groups", false), HttpMethod.GET,
+                new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<Group[]>() {
+                });
+        zoteroResponse.setResults(response.getBody());
+        List<String> totalResultsHeader = response.getHeaders().get(HEADER_TOTAL_RESULTS);
+        if (totalResultsHeader != null && totalResultsHeader.size() > 0) {
+            zoteroResponse.setTotalResults(new Long(totalResultsHeader.get(0)));
+        }
+        return zoteroResponse;
+    }
+    
+    @Override
+    public ZoteroResponse<Group> getGroupsVersions() {
+        ZoteroResponse<Group> zoteroResponse = new ZoteroResponse<>();
+        ResponseEntity<String> response = restTemplate.exchange(
+                buildUri("users/" + getUserId() + "/groups", false), HttpMethod.GET,
+                new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<String>() {
+                });
+        List<Group> groups = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(response.getBody());
+            Iterator<String> fieldNames = node.fieldNames();
+            fieldNames.forEachRemaining(f -> {
+                Group group = new Group();
+                group.setId(new Long(f));
+                group.setVersion(node.findValue(f).asLong());
+                groups.add(group);
+            });
+        } catch (IOException e) {
+            // do nothing for now 
+        }
+        zoteroResponse.setResults(groups.toArray(new Group[groups.size()]));
+        return zoteroResponse;
     }
     
     @Override

@@ -37,15 +37,15 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      * java.lang.String)
      */
     @Override
-    public Item[] getGroupItems(String groupId, int start, int numberOfItems) {
-        return restTemplate.getForObject(buildGroupUri("items", groupId, start, numberOfItems), Item[].class);
+    public Item[] getGroupItems(String groupId, int start, int numberOfItems, String sortBy) {
+        return restTemplate.getForObject(buildGroupUri("items", groupId, start, numberOfItems, sortBy), Item[].class);
     }
 
     @Override
-    public ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems) {
+    public ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy) {
         ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
         ResponseEntity<Item[]> response = restTemplate.exchange(
-                buildGroupUri("items/top", groupId, start, numberOfItems), HttpMethod.GET,
+                buildGroupUri("items/top", groupId, start, numberOfItems, sortBy), HttpMethod.GET,
                 new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<Item[]>() {
                 });
         zoteroResponse.setResults(response.getBody());
@@ -75,7 +75,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public ZoteroResponse<Group> getGroupsVersions() {
         ZoteroResponse<Group> zoteroResponse = new ZoteroResponse<>();
         ResponseEntity<String> response = restTemplate.exchange(
-                buildUri("users/" + getUserId() + "/groups", false), HttpMethod.GET,
+                buildUri("users/" + getUserId() + "/groups?format=versions", false), HttpMethod.GET,
                 new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<String>() {
                 });
         List<Group> groups = new ArrayList<>();
@@ -94,6 +94,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
         zoteroResponse.setResults(groups.toArray(new Group[groups.size()]));
         return zoteroResponse;
+    }
+    
+    @Override
+    public Group getGroup(String groupId) {
+        String url = String.format("groups/%s", groupId);
+        return restTemplate.getForObject(buildUri(url, false), Group.class);
     }
     
     @Override

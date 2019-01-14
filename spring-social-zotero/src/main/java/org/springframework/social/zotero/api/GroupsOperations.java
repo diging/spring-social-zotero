@@ -1,5 +1,9 @@
 package org.springframework.social.zotero.api;
 
+import java.util.List;
+
+import org.springframework.social.zotero.exception.ZoteroConnectionException;
+
 public interface GroupsOperations {
 
     Item[] getGroupItems(String groupId, int start, int numberOfItems, String sortBy);
@@ -15,4 +19,6 @@ public interface GroupsOperations {
     ZoteroResponse<Group> getGroupsVersions();
 
     Group getGroup(String groupId);
+    
+    void updateItem(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException;
 }

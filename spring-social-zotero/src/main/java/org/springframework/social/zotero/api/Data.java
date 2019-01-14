@@ -2,6 +2,9 @@ package org.springframework.social.zotero.api;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
+
+@JsonFilter("dataFilter")
 public class Data {
 
     private String key;

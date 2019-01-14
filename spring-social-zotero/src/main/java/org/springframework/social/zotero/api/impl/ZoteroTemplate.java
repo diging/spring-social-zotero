@@ -6,9 +6,11 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.social.oauth1.AbstractOAuth1ApiBinding;
 import org.springframework.social.support.HttpRequestDecorator;
 import org.springframework.social.zotero.api.GroupsOperations;
+import org.springframework.social.zotero.api.ItemTypesOperations;
 import org.springframework.social.zotero.api.ItemsOperations;
 import org.springframework.social.zotero.api.Zotero;
 import org.springframework.web.client.RestTemplate;
@@ -18,6 +20,7 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
     private String providerUrl;
     private ItemsOperations itemsOperations;
     private GroupsOperations groupOperations;
+    private ItemTypesOperations itemTypesOperations;
     private String userId;
 
     public ZoteroTemplate(String consumerKey, String consumerSecret, String accessToken, String secret, String providerUrl, String userId) {
@@ -48,12 +51,16 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
             });
         }
         
+        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+        template.setRequestFactory(requestFactory);
+        
         initSubApis();
     }
     
     private void initSubApis() {
         this.itemsOperations = new ItemsTemplate(getRestTemplate(), isAuthorized(), providerUrl, userId);
         this.groupOperations = new GroupsTemplate(getRestTemplate(), isAuthorized(), providerUrl, userId);
+        this.itemTypesOperations = new ItemTypesTemplate(getRestTemplate(), isAuthorized(), providerUrl, userId);
     }
 
     @Override
@@ -67,6 +74,11 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
     }
     
     @Override
+    public ItemTypesOperations getItemTypesOperations() {
+        return itemTypesOperations;
+    }
+    
+    @Override
     public String getUserId() {
         return userId; 
     }
@@ -76,5 +88,6 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
         this.userId = userId;
         this.itemsOperations.setUserId(userId);
         this.groupOperations.setUserId(userId);
+        this.itemTypesOperations.setUserId(userId);
     }
 }

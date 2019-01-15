@@ -21,4 +21,6 @@ public interface GroupsOperations {
     Group getGroup(String groupId);
     
     void updateItem(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException;
+
+    Long getGroupItemVersion(String groupId, String itemKey);
 }

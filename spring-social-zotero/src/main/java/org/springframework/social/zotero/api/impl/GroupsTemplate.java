@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.LogManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,7 +33,9 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
-
+    
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    
     private final RestTemplate restTemplate;
 
     public GroupsTemplate(RestTemplate restTemplate, boolean isAuthorizedForUser, String providerUrl, String userId) {
@@ -99,7 +104,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
                 groups.add(group);
             });
         } catch (IOException e) {
-            // do nothing for now
+            logger.error("Could not read JSON.", e);
         }
         zoteroResponse.setResults(groups.toArray(new Group[groups.size()]));
         return zoteroResponse;
@@ -115,6 +120,23 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public Item getGroupItem(String groupId, String itemKey) {
         String url = String.format("groups/%s/%s/%s", groupId, "items", itemKey);
         return restTemplate.getForObject(buildUri(url, false), Item.class);
+    }
+    
+    @Override
+    public Long getGroupItemVersion(String groupId, String itemKey) {
+        ResponseEntity<String> response = restTemplate.exchange(
+                buildUri("groups/" + groupId + "/items?format=versions&itemKey=" + itemKey, false), HttpMethod.GET,
+                new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<String>() {
+                });
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(response.getBody());
+            JsonNode version = node.get(itemKey);
+            return version.asLong();
+        } catch (IOException e) {
+            logger.error("Could not read JSON.", e);
+        }
+        return null;
     }
 
     @Override

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.LogManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,9 +12,12 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.social.zotero.api.Data;
 import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
+import org.springframework.social.zotero.api.ItemCreationResponse;
+import org.springframework.social.zotero.api.ZoteroFields;
 import org.springframework.social.zotero.api.ZoteroResponse;
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
 import org.springframework.web.client.RestClientException;
@@ -174,4 +176,45 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not update item.", e);
         }
     }
+    
+    @Override
+    public ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s", groupId, "items");
+
+        ignoreFields.add(ZoteroFields.VERSION);
+        ignoreFields.add(ZoteroFields.KEY);
+        
+        PropertyFilter filter = new SimpleBeanPropertyFilter() {
+            @Override
+            public void serializeAsField(Object pojo, JsonGenerator jgen, SerializerProvider provider,
+                    PropertyWriter writer) throws Exception {
+                if (include(writer)) {
+                    if (!ignoreFields.contains(writer.getName())) {
+                        writer.serializeAsField(pojo, jgen, provider);
+                        return;
+                    }
+                } else if (!jgen.canOmitFields()) { // since 2.3
+                    writer.serializeAsOmittedField(pojo, jgen, provider);
+                }
+            }
+        };
+        
+        FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", filter);
+        ObjectMapper mapper = new ObjectMapper();
+        String dataAsJson;
+        try {
+            dataAsJson = mapper.writer(filters).writeValueAsString(new Data[] { item.getData() });
+        } catch (JsonProcessingException e1) {
+            throw new ZoteroConnectionException("Could not serialize data.", e1);
+        }
+        
+        HttpEntity<String> data = new HttpEntity<String>(dataAsJson);
+
+        try {
+            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class).getBody();
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not create item.", e);
+        }
+    }
+    
 }

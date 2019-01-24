@@ -1,6 +1,7 @@
 package org.springframework.social.zotero.api.impl;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -11,6 +12,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.social.zotero.api.Creator;
 import org.springframework.social.zotero.api.Data;
@@ -19,6 +21,7 @@ import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemCreationResponse;
 import org.springframework.social.zotero.api.ZoteroFields;
+import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
 import org.springframework.web.client.RestClientException;
@@ -62,14 +65,21 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy) {
+    public ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy, Long groupVersion) {
         ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
+        HttpHeaders headers = new HttpHeaders();
+        if (groupVersion != null) {
+            headers.add(ZoteroRequestHeaders.HEDAER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
+        }
         ResponseEntity<Item[]> response = restTemplate.exchange(
                 buildGroupUri("items/top", groupId, start, numberOfItems, sortBy), HttpMethod.GET,
-                new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<Item[]>() {
+                new HttpEntity<String>(headers), new ParameterizedTypeReference<Item[]>() {
                 });
         zoteroResponse.setResults(response.getBody());
-        List<String> totalResultsHeader = response.getHeaders().get(HEADER_TOTAL_RESULTS);
+        if (response.getStatusCode() == HttpStatus.NOT_MODIFIED) {
+            zoteroResponse.setNotModified(true);
+        }
+        List<String> totalResultsHeader = response.getHeaders().get(ZoteroRequestHeaders.HEADER_TOTAL_RESULTS);
         if (totalResultsHeader != null && totalResultsHeader.size() > 0) {
             zoteroResponse.setTotalResults(new Long(totalResultsHeader.get(0)));
         }
@@ -83,7 +93,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
                 HttpMethod.GET, new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<Group[]>() {
                 });
         zoteroResponse.setResults(response.getBody());
-        List<String> totalResultsHeader = response.getHeaders().get(HEADER_TOTAL_RESULTS);
+        List<String> totalResultsHeader = response.getHeaders().get(ZoteroRequestHeaders.HEADER_TOTAL_RESULTS);
         if (totalResultsHeader != null && totalResultsHeader.size() > 0) {
             zoteroResponse.setTotalResults(new Long(totalResultsHeader.get(0)));
         }

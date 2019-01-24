@@ -5,6 +5,7 @@ public class ZoteroResponse<T> {
     private long totalResults;
     private int returnCode;
     private T[] results;
+    private Boolean notModified;
     
     public long getTotalResults() {
         return totalResults;
@@ -23,5 +24,11 @@ public class ZoteroResponse<T> {
     }
     public void setResults(T[] results) {
         this.results = results;
+    }
+    public Boolean getNotModified() {
+        return notModified;
+    }
+    public void setNotModified(Boolean notModified) {
+        this.notModified = notModified;
     }
 }

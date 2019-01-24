@@ -27,7 +27,7 @@ public class ItemCreationResponse {
         this.failed = failed;
     }
     
-    static class FailedMessage {
+    public static class FailedMessage {
         private Integer code;
         private String message;
         

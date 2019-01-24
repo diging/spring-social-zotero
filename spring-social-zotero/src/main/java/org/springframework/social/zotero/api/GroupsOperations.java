@@ -1,5 +1,6 @@
 package org.springframework.social.zotero.api;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
@@ -12,7 +13,7 @@ public interface GroupsOperations {
 
     void setUserId(String userId);
 
-    ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy);
+    ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy, Long groupVersion);
 
     Item getGroupItem(String groupId, String itemKey);
 

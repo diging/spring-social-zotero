@@ -1,5 +1,8 @@
 package org.springframework.social.zotero.api;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
+
+@JsonFilter("creatorFilter")
 public class Creator {
 
     private String creatorType;

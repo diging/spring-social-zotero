@@ -12,6 +12,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.social.zotero.api.Creator;
 import org.springframework.social.zotero.api.Data;
 import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
@@ -28,6 +29,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.introspect.Annotated;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.PropertyFilter;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
@@ -35,9 +38,9 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     private final RestTemplate restTemplate;
 
     public GroupsTemplate(RestTemplate restTemplate, boolean isAuthorizedForUser, String providerUrl, String userId) {
@@ -123,7 +126,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         String url = String.format("groups/%s/%s/%s", groupId, "items", itemKey);
         return restTemplate.getForObject(buildUri(url, false), Item.class);
     }
-    
+
     @Override
     public Long getGroupItemVersion(String groupId, String itemKey) {
         ResponseEntity<String> response = restTemplate.exchange(
@@ -142,32 +145,11 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public void updateItem(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException {
+    public void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
+            throws ZoteroConnectionException {
         String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
 
-        PropertyFilter filter = new SimpleBeanPropertyFilter() {
-            @Override
-            public void serializeAsField(Object pojo, JsonGenerator jgen, SerializerProvider provider,
-                    PropertyWriter writer) throws Exception {
-                if (include(writer)) {
-                    if (!ignoreFields.contains(writer.getName())) {
-                        writer.serializeAsField(pojo, jgen, provider);
-                        return;
-                    }
-                } else if (!jgen.canOmitFields()) { // since 2.3
-                    writer.serializeAsOmittedField(pojo, jgen, provider);
-                }
-            }
-        };
-        FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", filter);
-        ObjectMapper mapper = new ObjectMapper();
-        String dataAsJson;
-        try {
-            dataAsJson = mapper.writer(filters).writeValueAsString(item.getData());
-        } catch (JsonProcessingException e1) {
-            throw new ZoteroConnectionException("Could not serialize data.", e1);
-        }
-        
+        String dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
         HttpEntity<String> data = new HttpEntity<String>(dataAsJson);
 
         try {
@@ -176,45 +158,85 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not update item.", e);
         }
     }
-    
+
     @Override
-    public ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException {
+    public ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields,
+            List<String> validCreatorTypes) throws ZoteroConnectionException {
         String url = String.format("groups/%s/%s", groupId, "items");
 
         ignoreFields.add(ZoteroFields.VERSION);
         ignoreFields.add(ZoteroFields.KEY);
-        
-        PropertyFilter filter = new SimpleBeanPropertyFilter() {
-            @Override
-            public void serializeAsField(Object pojo, JsonGenerator jgen, SerializerProvider provider,
-                    PropertyWriter writer) throws Exception {
-                if (include(writer)) {
-                    if (!ignoreFields.contains(writer.getName())) {
-                        writer.serializeAsField(pojo, jgen, provider);
-                        return;
-                    }
-                } else if (!jgen.canOmitFields()) { // since 2.3
-                    writer.serializeAsOmittedField(pojo, jgen, provider);
-                }
-            }
-        };
-        
-        FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", filter);
-        ObjectMapper mapper = new ObjectMapper();
-        String dataAsJson;
-        try {
-            dataAsJson = mapper.writer(filters).writeValueAsString(new Data[] { item.getData() });
-        } catch (JsonProcessingException e1) {
-            throw new ZoteroConnectionException("Could not serialize data.", e1);
-        }
-        
+
+        String dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, true);
         HttpEntity<String> data = new HttpEntity<String>(dataAsJson);
 
         try {
-            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class).getBody();
+            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
+                    .getBody();
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not create item.", e);
         }
     }
     
+    private String createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes, boolean asArray)
+            throws ZoteroConnectionException {
+        FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields))
+                .addFilter("creatorFilter", new CreatorFilter(validCreatorTypes));
+        ObjectMapper mapper = new ObjectMapper();
+        String dataAsJson;
+        try {
+            if (!asArray) {
+                dataAsJson = mapper.writer(filters).writeValueAsString(item.getData());
+            } else {
+                dataAsJson = mapper.writer(filters).writeValueAsString(new Data[] { item.getData() });
+            }
+        } catch (JsonProcessingException e1) {
+            throw new ZoteroConnectionException("Could not serialize data.", e1);
+        }
+        return dataAsJson;
+    }
+
+    class ZoteroFieldFilter extends SimpleBeanPropertyFilter {
+
+        private List<String> ignoreFields;
+
+        public ZoteroFieldFilter(List<String> ignoreFields) {
+            this.ignoreFields = ignoreFields;
+        }
+
+        @Override
+        public void serializeAsField(Object pojo, JsonGenerator jgen, SerializerProvider provider,
+                PropertyWriter writer) throws Exception {
+            if (include(writer)) {
+                if (!ignoreFields.contains(writer.getName())) {
+                    writer.serializeAsField(pojo, jgen, provider);
+                    return;
+                }
+            } else if (!jgen.canOmitFields()) { // since 2.3
+                writer.serializeAsOmittedField(pojo, jgen, provider);
+            }
+        }
+    }
+
+    class CreatorFilter extends SimpleBeanPropertyFilter {
+
+        private List<String> validCreatorTypes;
+
+        public CreatorFilter(List<String> validCreatorTypes) {
+            this.validCreatorTypes = validCreatorTypes;
+        }
+
+        @Override
+        public void serializeAsField(Object pojo, JsonGenerator jgen, SerializerProvider provider,
+                PropertyWriter writer) throws Exception {
+            if (include(writer)) {
+                if (validCreatorTypes.contains(((Creator) pojo).getCreatorType())) {
+                    writer.serializeAsField(pojo, jgen, provider);
+                    return;
+                }
+            } else if (!jgen.canOmitFields()) { // since 2.3
+                writer.serializeAsOmittedField(pojo, jgen, provider);
+            }
+        }
+    }
 }

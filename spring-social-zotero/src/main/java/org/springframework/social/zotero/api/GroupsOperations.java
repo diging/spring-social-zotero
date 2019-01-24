@@ -20,9 +20,9 @@ public interface GroupsOperations {
 
     Group getGroup(String groupId);
     
-    void updateItem(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException;
+    void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes) throws ZoteroConnectionException;
 
     Long getGroupItemVersion(String groupId, String itemKey);
 
-    ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException;
+    ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes) throws ZoteroConnectionException;
 }

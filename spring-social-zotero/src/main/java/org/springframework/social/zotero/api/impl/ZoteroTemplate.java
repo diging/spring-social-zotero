@@ -9,6 +9,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.social.oauth1.AbstractOAuth1ApiBinding;
 import org.springframework.social.support.HttpRequestDecorator;
+import org.springframework.social.zotero.api.GroupCollectionsOperations;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.ItemTypesOperations;
 import org.springframework.social.zotero.api.ItemsOperations;
@@ -21,6 +22,7 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
     private ItemsOperations itemsOperations;
     private GroupsOperations groupOperations;
     private ItemTypesOperations itemTypesOperations;
+    private GroupCollectionsOperations groupCollectionsOperations;
     private String userId;
 
     public ZoteroTemplate(String consumerKey, String consumerSecret, String accessToken, String secret, String providerUrl, String userId) {
@@ -61,6 +63,7 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
         this.itemsOperations = new ItemsTemplate(getRestTemplate(), isAuthorized(), providerUrl, userId);
         this.groupOperations = new GroupsTemplate(getRestTemplate(), isAuthorized(), providerUrl, userId);
         this.itemTypesOperations = new ItemTypesTemplate(getRestTemplate(), isAuthorized(), providerUrl, userId);
+        this.groupCollectionsOperations = new GroupCollectionsTemplate(getRestTemplate(), isAuthorized(), providerUrl, userId);
     }
 
     @Override
@@ -79,6 +82,11 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
     }
     
     @Override
+    public GroupCollectionsOperations getGroupCollectionsOperations() {
+        return groupCollectionsOperations;
+    }
+    
+    @Override
     public String getUserId() {
         return userId; 
     }
@@ -89,5 +97,6 @@ public class ZoteroTemplate extends AbstractOAuth1ApiBinding implements Zotero {
         this.itemsOperations.setUserId(userId);
         this.groupOperations.setUserId(userId);
         this.itemTypesOperations.setUserId(userId);
+        this.groupCollectionsOperations.setUserId(userId);
     }
 }

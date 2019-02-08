@@ -13,4 +13,6 @@ public interface Zotero extends ApiBinding {
     void setUserId(String userId);
 
     ItemTypesOperations getItemTypesOperations();
+
+    GroupCollectionsOperations getGroupCollectionsOperations();
 }

@@ -1,6 +1,5 @@
 package org.springframework.social.zotero.api;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.social.zotero.exception.ZoteroConnectionException;

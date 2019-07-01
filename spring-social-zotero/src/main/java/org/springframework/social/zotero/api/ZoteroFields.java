@@ -7,4 +7,5 @@ public interface ZoteroFields {
     public final String KEY = "key";
     
     public final String CREATOR = "creators";
+    public final String COLLECTIONS = "collections";
 }

@@ -155,14 +155,16 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throws ZoteroConnectionException {
         String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
 
-        String dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
-        HttpEntity<String> data = new HttpEntity<String>(dataAsJson);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
+        JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
+        HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson, headers);
 
         try {
             restTemplate.exchange(buildUri(url, false), HttpMethod.PATCH, data, String.class);
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not update item.", e);
-        }
+        } 
     }
 
     @Override
@@ -173,8 +175,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         ignoreFields.add(ZoteroFields.VERSION);
         ignoreFields.add(ZoteroFields.KEY);
 
-        String dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, true);
-        HttpEntity<String> data = new HttpEntity<String>(dataAsJson);
+        JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, true);
+        HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson);
 
         try {
             return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
@@ -184,7 +186,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
     }
     
-    private String createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes, boolean asArray)
+    private JsonNode createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes, boolean asArray)
             throws ZoteroConnectionException {
         FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields))
                 .addFilter("creatorFilter", new CreatorFilter(validCreatorTypes));
@@ -199,7 +201,11 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         } catch (JsonProcessingException e1) {
             throw new ZoteroConnectionException("Could not serialize data.", e1);
         }
-        return dataAsJson;
+        try {
+            return mapper.readTree(dataAsJson);
+        } catch (IOException e) {
+            throw new ZoteroConnectionException("Could not deserialize data.", e);
+        }
     }
 
     class ZoteroFieldFilter extends SimpleBeanPropertyFilter {

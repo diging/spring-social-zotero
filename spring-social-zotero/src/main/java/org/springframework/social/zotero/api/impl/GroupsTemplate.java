@@ -261,11 +261,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
-        JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
-        HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson, headers);
+
+        HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
 
         try {
-            restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, data, String.class);
+            restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, String.class);
+
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not delete item.", e);
         }

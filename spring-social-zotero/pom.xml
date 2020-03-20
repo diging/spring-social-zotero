@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>edu.asu.diging</groupId>
     <artifactId>spring-social-zotero</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.2</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <url>https://github.com/diging/spring-social-zotero</url>
@@ -58,7 +58,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.9.9.3</version>
+            <version>2.9.10.3</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
         <dependency>

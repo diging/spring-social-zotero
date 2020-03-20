@@ -62,7 +62,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy, Long groupVersion) {
+    public ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy,
+            Long groupVersion) {
         ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
         HttpHeaders headers = new HttpHeaders();
         if (groupVersion != null) {
@@ -165,7 +166,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             restTemplate.exchange(buildUri(url, false), HttpMethod.PATCH, data, String.class);
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not update item.", e);
-        } 
+        }
     }
 
     @Override
@@ -186,9 +187,9 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not create item.", e);
         }
     }
-    
-    private JsonNode createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes, boolean asArray)
-            throws ZoteroConnectionException {
+
+    private JsonNode createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes,
+            boolean asArray) throws ZoteroConnectionException {
         FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields))
                 .addFilter("creatorFilter", new CreatorFilter(validCreatorTypes));
         ObjectMapper mapper = new ObjectMapper();
@@ -251,5 +252,24 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
                 writer.serializeAsOmittedField(pojo, jgen, provider);
             }
         }
+    }
+
+    @Override
+    public void deleteItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
+            throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
+
+        HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
+
+        try {
+            restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, String.class);
+
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not delete item.", e);
+        }
+
     }
 }

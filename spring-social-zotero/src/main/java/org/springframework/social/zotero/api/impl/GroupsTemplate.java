@@ -255,12 +255,11 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public void deleteItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
-            throws ZoteroConnectionException {
-        String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
+    public void deleteItem(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s/%s", groupId, "items", citationKey);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
+        headers.set("If-Unmodified-Since-Version", citationVersion + "");
 
         HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
 

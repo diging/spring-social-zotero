@@ -12,19 +12,23 @@ public interface GroupsOperations {
 
     void setUserId(String userId);
 
-    ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy, Long groupVersion);
+    ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy,
+            Long groupVersion);
 
     Item getGroupItem(String groupId, String itemKey);
 
     ZoteroResponse<Group> getGroupsVersions();
 
     Group getGroup(String groupId);
-    
-    void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes) throws ZoteroConnectionException;
+
+    void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
+            throws ZoteroConnectionException;
 
     Long getGroupItemVersion(String groupId, String itemKey);
 
-    ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes) throws ZoteroConnectionException;
-    
-    void deleteItem(String groupId, Item item,List<String> ignoreFields, List<String> validCreatorTypes) throws ZoteroConnectionException;
+    ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields,
+            List<String> validCreatorTypes) throws ZoteroConnectionException;
+
+    void deleteItem(String groupId, String citationKey, Long citationVersion)
+            throws ZoteroConnectionException;
 }

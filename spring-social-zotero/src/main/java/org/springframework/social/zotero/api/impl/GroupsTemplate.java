@@ -255,7 +255,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public void deleteItem(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException {
+    public boolean deleteItem(String groupId, String citationKey, Long citationVersion)
+            throws ZoteroConnectionException {
         String url = String.format("groups/%s/%s/%s", groupId, "items", citationKey);
 
         HttpHeaders headers = new HttpHeaders();
@@ -264,7 +265,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
 
         try {
-            restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, String.class);
+            return restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, String.class)
+                    .getStatusCode().is2xxSuccessful();
 
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not delete item.", e);

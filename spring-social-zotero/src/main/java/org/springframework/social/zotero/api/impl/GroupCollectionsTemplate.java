@@ -33,7 +33,21 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
     @Override
     public Collection getCollection(String groupId, String collectionId) {
         String url = String.format("groups/%s/collections/%s", groupId, collectionId);
-        return restTemplate.getForObject(buildUri(url, false), Collection.class);
+        Collection collection = restTemplate.getForObject(buildUri(url, false), Collection.class);
+        
+        url = String.format("groups/%s/collections/%s/items?limit=1", groupId, collectionId);
+        
+        HttpHeaders headers = new HttpHeaders();
+        ResponseEntity<Item[]> response = restTemplate.exchange(
+                buildGroupUri("collections/" + collectionId + "/items", groupId, 0, 1, ""), HttpMethod.GET,
+                new HttpEntity<String>(headers), new ParameterizedTypeReference<Item[]>() {
+                });
+        long latestVersion = getLatestVersion(response.getHeaders());
+        if (latestVersion > -1) {
+            collection.setVersion(latestVersion);
+        }
+        
+        return collection;
     }
 
     /* (non-Javadoc)
@@ -44,7 +58,7 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         ZoteroResponse<Collection> zoteroResponse = new ZoteroResponse<>();
         HttpHeaders headers = new HttpHeaders();
         if (groupVersion != null) {
-            headers.add(ZoteroRequestHeaders.HEDAER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
+            headers.add(ZoteroRequestHeaders.HEADER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
         }
         
         ResponseEntity<Collection[]> response = restTemplate.exchange(
@@ -67,7 +81,7 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         ZoteroResponse<Collection> zoteroResponse = new ZoteroResponse<>();
         HttpHeaders headers = new HttpHeaders();
         if (groupVersion != null) {
-            headers.add(ZoteroRequestHeaders.HEDAER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
+            headers.add(ZoteroRequestHeaders.HEADER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
         }
         
         ResponseEntity<Collection[]> response = restTemplate.exchange(
@@ -90,7 +104,7 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
         HttpHeaders headers = new HttpHeaders();
         if (groupVersion != null) {
-            headers.add(ZoteroRequestHeaders.HEDAER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
+            headers.add(ZoteroRequestHeaders.HEADER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
         }
         ResponseEntity<Item[]> response = restTemplate.exchange(
                 buildGroupUri("collections/" + collectionId + "/items", groupId, start, numberOfItems, sortBy), HttpMethod.GET,
@@ -100,10 +114,26 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         if (response.getStatusCode() == HttpStatus.NOT_MODIFIED) {
             zoteroResponse.setNotModified(true);
         }
+        
+        HttpHeaders responseHeaders = response.getHeaders();
+        long latestVersion = getLatestVersion(responseHeaders);
+        zoteroResponse.setLastVersion(latestVersion > -1 ? latestVersion : groupVersion);
+        
         List<String> totalResultsHeader = response.getHeaders().get(ZoteroRequestHeaders.HEADER_TOTAL_RESULTS);
         if (totalResultsHeader != null && totalResultsHeader.size() > 0) {
             zoteroResponse.setTotalResults(new Long(totalResultsHeader.get(0)));
         }
         return zoteroResponse;
+    }
+    
+    private long getLatestVersion(HttpHeaders responseHeaders) {
+        if (responseHeaders.get(ZoteroRequestHeaders.HEADER_LAST_MODIFIED_VERSION) != null) {
+            List<String> versions = responseHeaders.get(ZoteroRequestHeaders.HEADER_LAST_MODIFIED_VERSION);
+            if (versions.size() > 0) {
+                // there should be just one
+                return new Long(versions.get(0));
+            }
+        }
+        return -1;
     }
 }

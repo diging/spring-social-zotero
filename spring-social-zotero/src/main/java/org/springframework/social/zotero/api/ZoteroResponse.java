@@ -3,6 +3,7 @@ package org.springframework.social.zotero.api;
 public class ZoteroResponse<T> {
 
     private long totalResults;
+    private long lastVersion;
     private int returnCode;
     private T[] results;
     private Boolean notModified;
@@ -12,6 +13,12 @@ public class ZoteroResponse<T> {
     }
     public void setTotalResults(long totalResults) {
         this.totalResults = totalResults;
+    }
+    public long getLastVersion() {
+        return lastVersion;
+    }
+    public void setLastVersion(long lastVersion) {
+        this.lastVersion = lastVersion;
     }
     public int getReturnCode() {
         return returnCode;

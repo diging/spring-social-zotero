@@ -2,7 +2,6 @@ package org.springframework.social.zotero.api.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -67,7 +66,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
         HttpHeaders headers = new HttpHeaders();
         if (groupVersion != null) {
-            headers.add(ZoteroRequestHeaders.HEDAER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
+            headers.add(ZoteroRequestHeaders.HEADER_IF_MODIFIED_SINCE_VERSION, groupVersion.toString());
         }
         ResponseEntity<Item[]> response = restTemplate.exchange(
                 buildGroupUri("items/top", groupId, start, numberOfItems, sortBy), HttpMethod.GET,
@@ -77,11 +76,26 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         if (response.getStatusCode() == HttpStatus.NOT_MODIFIED) {
             zoteroResponse.setNotModified(true);
         }
+        HttpHeaders responseHeaders = response.getHeaders();
+        long latestVersion = getLatestVersion(responseHeaders);
+        zoteroResponse.setLastVersion(latestVersion > -1 ? latestVersion : groupVersion);
+        
         List<String> totalResultsHeader = response.getHeaders().get(ZoteroRequestHeaders.HEADER_TOTAL_RESULTS);
         if (totalResultsHeader != null && totalResultsHeader.size() > 0) {
             zoteroResponse.setTotalResults(new Long(totalResultsHeader.get(0)));
         }
         return zoteroResponse;
+    }
+    
+    private long getLatestVersion(HttpHeaders responseHeaders) {
+        if (responseHeaders.get(ZoteroRequestHeaders.HEADER_LAST_MODIFIED_VERSION) != null) {
+            List<String> versions = responseHeaders.get(ZoteroRequestHeaders.HEADER_LAST_MODIFIED_VERSION);
+            if (versions.size() > 0) {
+                // there should be just one
+                return new Long(versions.get(0));
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -126,7 +140,16 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     @Override
     public Group getGroup(String groupId) {
         String url = String.format("groups/%s", groupId);
-        return restTemplate.getForObject(buildUri(url, false), Group.class);
+        Group group = restTemplate.getForObject(buildUri(url, false), Group.class);
+        
+        url = String.format("groups/%s/items?limit=1", groupId);
+        HttpHeaders headers = restTemplate.headForHeaders(buildUri(url, false));
+        long latestVersion = getLatestVersion(headers);
+        if (latestVersion > -1) {
+            group.setVersion(latestVersion);
+        }
+        
+        return group;
     }
 
     @Override

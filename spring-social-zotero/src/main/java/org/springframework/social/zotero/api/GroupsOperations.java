@@ -31,4 +31,10 @@ public interface GroupsOperations {
 
     void deleteItem(String groupId, String citationKey, Long citationVersion)
             throws ZoteroConnectionException;
+
+    ZoteroResponse<Item> getGroupItemsByKey(String groupId, List<String> keys);
+
+    ZoteroResponse<Item> getGroupItemVersions(String groupId, long version);
+
+    DeletedElements getDeletedElements(String groupId, long version);
 }

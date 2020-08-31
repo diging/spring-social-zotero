@@ -30,7 +30,6 @@ abstract class AbstractZoteroOperations implements ZoteroOperations {
     }
 
     protected URI buildGroupUri(String path, String groupId, int start, int numberOfItems, String sortBy) {
-        String url = String.format("%sgroups/%s/%s", apiUrlBase, groupId, path);
         Map<String, String> queryParams = new HashMap<>();
         if (start > -1) {
             queryParams.put("start", start + "");
@@ -41,6 +40,11 @@ abstract class AbstractZoteroOperations implements ZoteroOperations {
         if (sortBy != null) {
             queryParams.put("sort", sortBy);
         }
+        return buildGroupUri(path, groupId, queryParams);
+    }
+    
+    protected URI buildGroupUri(String path, String groupId, Map<String, String> queryParams) {
+        String url = String.format("%sgroups/%s/%s", apiUrlBase, groupId, path);
         if (queryParams.size() > 0) {
             String queryString = String.join("&", queryParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.toList()));
             url = url + "?" + queryString;

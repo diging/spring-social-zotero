@@ -42,16 +42,14 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         String url = String.format("groups/%s/collections/%s", groupId, collectionId);
         Collection collection = restTemplate.getForObject(buildUri(url, false), Collection.class);
         
-        url = String.format("groups/%s/collections/%s/items?limit=1", groupId, collectionId);
-        
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Item[]> response = restTemplate.exchange(
                 buildGroupUri("collections/" + collectionId + "/items", groupId, 0, 1, ""), HttpMethod.GET,
                 new HttpEntity<String>(headers), new ParameterizedTypeReference<Item[]>() {
                 });
-        long latestVersion = getLatestVersion(response.getHeaders());
-        if (latestVersion > -1) {
-            collection.setVersion(latestVersion);
+        long latestContentVersion = getLatestVersion(response.getHeaders());
+        if (latestContentVersion > -1) {
+            collection.setContentVersion(latestContentVersion);
         }
         
         return collection;

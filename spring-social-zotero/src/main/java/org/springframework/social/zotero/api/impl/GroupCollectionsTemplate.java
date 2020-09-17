@@ -1,6 +1,11 @@
 package org.springframework.social.zotero.api.impl;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,12 +16,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.social.zotero.api.Collection;
-import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupCollectionsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
 import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class GroupCollectionsTemplate extends AbstractZoteroOperations implements GroupCollectionsOperations {
 
@@ -35,16 +42,14 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         String url = String.format("groups/%s/collections/%s", groupId, collectionId);
         Collection collection = restTemplate.getForObject(buildUri(url, false), Collection.class);
         
-        url = String.format("groups/%s/collections/%s/items?limit=1", groupId, collectionId);
-        
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Item[]> response = restTemplate.exchange(
                 buildGroupUri("collections/" + collectionId + "/items", groupId, 0, 1, ""), HttpMethod.GET,
                 new HttpEntity<String>(headers), new ParameterizedTypeReference<Item[]>() {
                 });
-        long latestVersion = getLatestVersion(response.getHeaders());
-        if (latestVersion > -1) {
-            collection.setVersion(latestVersion);
+        long latestContentVersion = getLatestVersion(response.getHeaders());
+        if (latestContentVersion > -1) {
+            collection.setContentVersion(latestContentVersion);
         }
         
         return collection;
@@ -89,6 +94,64 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
                 new HttpEntity<String>(headers), new ParameterizedTypeReference<Collection[]>() {
                 });
         zoteroResponse.setResults(response.getBody());
+        if (response.getStatusCode() == HttpStatus.NOT_MODIFIED) {
+            zoteroResponse.setNotModified(true);
+        }
+        List<String> totalResultsHeader = response.getHeaders().get(ZoteroRequestHeaders.HEADER_TOTAL_RESULTS);
+        if (totalResultsHeader != null && totalResultsHeader.size() > 0) {
+            zoteroResponse.setTotalResults(new Long(totalResultsHeader.get(0)));
+        }
+        return zoteroResponse;
+    }
+    
+    @Override
+    public ZoteroResponse<Collection> getCollectionsByKey(String groupId, List<String> keys) {
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("collectionKey", String.join(",", keys));
+        
+        ZoteroResponse<Collection> zoteroResponse = new ZoteroResponse<>();
+        HttpHeaders headers = new HttpHeaders();
+        ResponseEntity<Collection[]> response = restTemplate.exchange(
+                buildGroupUri("collections", groupId, queryParams), HttpMethod.GET,
+                new HttpEntity<String>(headers), new ParameterizedTypeReference<Collection[]>() {
+                });
+        zoteroResponse.setResults(response.getBody());
+        zoteroResponse.setLastVersion(getLatestVersion(response.getHeaders()));
+        
+        return zoteroResponse;
+    }
+    
+    @Override
+    public ZoteroResponse<Collection> getCollectionsVersions(String groupId, Long groupVersion) {
+        ZoteroResponse<Collection> zoteroResponse = new ZoteroResponse<>();
+        HttpHeaders headers = new HttpHeaders();
+        
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("since", groupVersion + "");
+        queryParams.put("format", "versions");
+        
+        ResponseEntity<String> response = restTemplate.exchange(
+                buildGroupUri("collections", groupId, queryParams), HttpMethod.GET,
+                new HttpEntity<String>(headers), new ParameterizedTypeReference<String>() {
+                });
+        
+        List<Collection> collections = new ArrayList<Collection>();
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(response.getBody());
+            Iterator<String> keys = node.fieldNames();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                Collection collection = new Collection();
+                collection.setKey(key);
+                collection.setVersion(node.get(key).asLong());
+                collections.add(collection);
+            }
+        } catch (IOException e) {
+            logger.error("Could not read JSON.", e);
+        }
+        
+        zoteroResponse.setResults(collections.toArray(new Collection[collections.size()]));
         if (response.getStatusCode() == HttpStatus.NOT_MODIFIED) {
             zoteroResponse.setNotModified(true);
         }

@@ -2,8 +2,10 @@ package org.springframework.social.zotero.api.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.social.zotero.api.Creator;
 import org.springframework.social.zotero.api.Data;
+import org.springframework.social.zotero.api.DeletedElements;
 import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
@@ -59,6 +62,55 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public Item[] getGroupItems(String groupId, int start, int numberOfItems, String sortBy) {
         return restTemplate.getForObject(buildGroupUri("items", groupId, start, numberOfItems, sortBy), Item[].class);
     }
+    
+    @Override
+    public ZoteroResponse<Item> getGroupItemsByKey(String groupId, List<String> keys) {
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("itemKey", String.join(",", keys));
+        
+        ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
+        HttpHeaders headers = new HttpHeaders();
+        ResponseEntity<Item[]> response = restTemplate.exchange(
+                buildGroupUri("items", groupId, queryParams), HttpMethod.GET,
+                new HttpEntity<String>(headers), new ParameterizedTypeReference<Item[]>() {
+                });
+        zoteroResponse.setResults(response.getBody());
+        zoteroResponse.setLastVersion(getLatestVersion(response.getHeaders()));
+        
+        return zoteroResponse;
+    }
+    
+    @Override
+    public ZoteroResponse<Item> getGroupItemVersions(String groupId, long version) {
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("since", version + "");
+        queryParams.put("format", "versions");
+        
+        List<Item> items = new ArrayList<>();
+        
+        ResponseEntity<String> response = restTemplate.exchange(
+                buildGroupUri("items", groupId, queryParams), HttpMethod.GET,
+                new HttpEntity<String>(new HttpHeaders()), new ParameterizedTypeReference<String>() {
+                });
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(response.getBody());
+            Iterator<String> keys = node.fieldNames();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                Item item = new Item();
+                item.setKey(key);
+                item.setVersion(node.get(key).asLong());
+                items.add(item);
+            }
+        } catch (IOException e) {
+            logger.error("Could not read JSON.", e);
+        }
+        
+        ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
+        zoteroResponse.setResults(items.toArray(new Item[items.size()]));
+        return zoteroResponse;
+    }
 
     @Override
     public ZoteroResponse<Item> getGroupItemsTop(String groupId, int start, int numberOfItems, String sortBy,
@@ -75,7 +127,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         zoteroResponse.setResults(response.getBody());
         if (response.getStatusCode() == HttpStatus.NOT_MODIFIED) {
             zoteroResponse.setNotModified(true);
-        }
+        }  
         HttpHeaders responseHeaders = response.getHeaders();
         long latestVersion = getLatestVersion(responseHeaders);
         zoteroResponse.setLastVersion(latestVersion > -1 ? latestVersion : groupVersion);
@@ -140,22 +192,20 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     @Override
     public Group getGroup(String groupId) {
         String url = String.format("groups/%s", groupId);
-        Group group = restTemplate.getForObject(buildUri(url, false), Group.class);
-        
-        url = String.format("groups/%s/items?limit=1", groupId);
-        HttpHeaders headers = restTemplate.headForHeaders(buildUri(url, false));
-        long latestVersion = getLatestVersion(headers);
-        if (latestVersion > -1) {
-            group.setVersion(latestVersion);
-        }
-        
-        return group;
+        return restTemplate.getForObject(buildUri(url, false), Group.class);
     }
 
     @Override
     public Item getGroupItem(String groupId, String itemKey) {
         String url = String.format("groups/%s/%s/%s", groupId, "items", itemKey);
         return restTemplate.getForObject(buildUri(url, false), Item.class);
+    }
+    
+    @Override
+    public DeletedElements getDeletedElements(String groupId, long version) {
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("since", version + "");
+        return restTemplate.getForObject(buildGroupUri("deleted", groupId, queryParams), DeletedElements.class);  
     }
 
     @Override

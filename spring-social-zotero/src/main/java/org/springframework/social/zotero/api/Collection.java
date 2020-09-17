@@ -10,6 +10,7 @@ public class Collection {
     private Library library;
     private CollectionMeta meta;
     private CollectionData data;
+    private long contentVersion;
     
     public String getKey() {
         return key;
@@ -40,5 +41,11 @@ public class Collection {
     }
     public void setData(CollectionData data) {
         this.data = data;
+    }
+    public long getContentVersion() {
+        return contentVersion;
+    }
+    public void setContentVersion(long contentVersion) {
+        this.contentVersion = contentVersion;
     }
 }

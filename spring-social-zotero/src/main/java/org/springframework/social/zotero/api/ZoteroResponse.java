@@ -6,7 +6,7 @@ public class ZoteroResponse<T> {
     private long lastVersion;
     private int returnCode;
     private T[] results;
-    private Boolean notModified;
+    private Boolean notModified = false;
     
     public long getTotalResults() {
         return totalResults;

@@ -64,9 +64,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
-    public ZoteroResponse<Item> getGroupItemsByKey(String groupId, List<String> keys) {
+    public ZoteroResponse<Item> getGroupItemsByKey(String groupId, List<String> keys, boolean includeTrashed) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("itemKey", String.join(",", keys));
+        if (includeTrashed) {
+            queryParams.put("includeTrashed", "1");
+        }
         
         ZoteroResponse<Item> zoteroResponse = new ZoteroResponse<>();
         HttpHeaders headers = new HttpHeaders();
@@ -81,10 +84,13 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
-    public ZoteroResponse<Item> getGroupItemVersions(String groupId, long version) {
+    public ZoteroResponse<Item> getGroupItemsVersions(String groupId, long version, boolean includeTrashed) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("since", version + "");
         queryParams.put("format", "versions");
+        if (includeTrashed) {
+            queryParams.put("includeTrashed", "1");
+        }
         
         List<Item> items = new ArrayList<>();
         

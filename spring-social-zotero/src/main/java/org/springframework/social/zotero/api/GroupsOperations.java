@@ -24,13 +24,15 @@ public interface GroupsOperations {
     void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
             throws ZoteroConnectionException;
 
+    ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFields, List<List<String>> validCreatorTypes)
+            throws ZoteroConnectionException;
+
     Long getGroupItemVersion(String groupId, String itemKey);
 
     ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields,
             List<String> validCreatorTypes) throws ZoteroConnectionException;
 
-    void deleteItem(String groupId, String citationKey, Long citationVersion)
-            throws ZoteroConnectionException;
+    void deleteItem(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException;
 
     ZoteroResponse<Item> getGroupItemsByKey(String groupId, List<String> keys, boolean includeTrashed);
 

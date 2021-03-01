@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -235,14 +236,44 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
             throws ZoteroConnectionException {
         String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
-
+        System.out.println(url);
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
         JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
         HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson, headers);
 
         try {
+            System.out.println(buildUri(url, false));
             restTemplate.exchange(buildUri(url, false), HttpMethod.PATCH, data, String.class);
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not update item.", e);
+        }
+    }
+    
+    @Override
+    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFields,
+            List<List<String>> validCreatorTypes) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s", groupId, "items/");
+        HttpHeaders headers = new HttpHeaders();
+        List<JsonNode> dataAsJsonArray = new ArrayList<>();
+        for (int i=0; i<items.size(); i++) {
+            dataAsJsonArray.add(createDataJson(items.get(i), ignoreFields.get(i), validCreatorTypes.get(i), false));
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode arrayNode = mapper.createArrayNode();
+        arrayNode.addAll(dataAsJsonArray);
+        String jsonArrayString = null;
+        try {
+            jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
+        } catch (JsonProcessingException e1) {
+            System.out.println("failed to serialize to jason array");
+            throw new ZoteroConnectionException("Could not serialize data.", e1);
+        }
+
+        HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
+        try {
+            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
+                    .getBody();
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not update item.", e);
         }
@@ -276,6 +307,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         try {
             if (!asArray) {
                 dataAsJson = mapper.writer(filters).writeValueAsString(item.getData());
+                System.out.println(dataAsJson);
             } else {
                 dataAsJson = mapper.writer(filters).writeValueAsString(new Data[] { item.getData() });
             }
@@ -288,6 +320,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not deserialize data.", e);
         }
     }
+    
+    
 
     class ZoteroFieldFilter extends SimpleBeanPropertyFilter {
 

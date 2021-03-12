@@ -272,10 +272,13 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
 
         HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
         try {
+            System.out.println("Posted request");
+            System.out.println("Data posted"+ data);
+            System.out.println("url"+url);
             return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
                     .getBody();
         } catch (RestClientException e) {
-            throw new ZoteroConnectionException("Could not update item.", e);
+            throw new ZoteroConnectionException("Could not update items.", e);
         }
     }
 

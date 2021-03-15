@@ -248,6 +248,23 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
     }
     
+    
+    
+    /**
+     * This method makes a batch request call to Zotero to update items
+     * 
+     * @param groupId      group id of citations
+     * @param items        items that have to be updated
+     * @param ignoreFields fields that are not necessary while updating citations
+     * 
+     * @return ItemCreationResponse returns response from Zotero
+     */
+
+    /*
+     * The response returned by Zotero while creating single items and updating
+     * multiple items is in same format. So, we can use "ItemCreationResponse" data
+     * type to capture the response.
+     */
     @Override
     public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields)
             throws ZoteroConnectionException {

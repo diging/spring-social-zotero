@@ -261,9 +261,9 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      */
 
     /*
-     * The response returned by Zotero while creating single items and updating
-     * multiple items is in same format. So, we can use "ItemCreationResponse" data
-     * type to capture the response.
+     * The response returned by Zotero while creating a single item or updating
+     * multiple items is in the same format. So, we can use "ItemCreationResponse" data
+     * type to capture the response in both cases.
      */
     @Override
     public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields)

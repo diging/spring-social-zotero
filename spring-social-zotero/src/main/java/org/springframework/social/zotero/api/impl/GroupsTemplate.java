@@ -270,9 +270,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
         String url = String.format("groups/%s/%s", groupId, "items/");
         try {
-            System.out.println("Posted request");
-            System.out.println("Data posted" + data);
-            System.out.println("url" + url);
             return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
                     .getBody();
         } catch (RestClientException e) {

@@ -251,10 +251,10 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
-    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields
-            ) throws ZoteroConnectionException {
+    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields)
+            throws ZoteroConnectionException {
         List<JsonNode> dataAsJsonArray = new ArrayList<>();
-        for (int i=0; i<items.size(); i++) {
+        for (int i = 0; i < items.size(); i++) {
             dataAsJsonArray.add(createDataJson(items.get(i), ignoreFields, new ArrayList<String>(), false));
         }
         ObjectMapper mapper = new ObjectMapper();
@@ -267,14 +267,14 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             System.out.println("failed to serialize to json array");
             throw new ZoteroConnectionException("Could not serialize data.", e);
         }
-        
+
         HttpHeaders headers = new HttpHeaders();
         HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
         String url = String.format("groups/%s/%s", groupId, "items/");
         try {
             System.out.println("Posted request");
-            System.out.println("Data posted"+ data);
-            System.out.println("url"+url);
+            System.out.println("Data posted" + data);
+            System.out.println("url" + url);
             return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
                     .getBody();
         } catch (RestClientException e) {

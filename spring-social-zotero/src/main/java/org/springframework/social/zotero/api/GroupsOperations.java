@@ -24,7 +24,7 @@ public interface GroupsOperations {
     void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
             throws ZoteroConnectionException;
 
-    ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFields, List<List<String>> validCreatorTypes)
+    ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields)
             throws ZoteroConnectionException;
 
     Long getGroupItemVersion(String groupId, String itemKey);

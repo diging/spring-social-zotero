@@ -251,13 +251,11 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
-    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFields,
-            List<List<String>> validCreatorTypes) throws ZoteroConnectionException {
-        String url = String.format("groups/%s/%s", groupId, "items/");
-        HttpHeaders headers = new HttpHeaders();
+    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields
+            ) throws ZoteroConnectionException {
         List<JsonNode> dataAsJsonArray = new ArrayList<>();
         for (int i=0; i<items.size(); i++) {
-            dataAsJsonArray.add(createDataJson(items.get(i), ignoreFields.get(i), validCreatorTypes.get(i), false));
+            dataAsJsonArray.add(createDataJson(items.get(i), ignoreFields, new ArrayList<String>(), false));
         }
         ObjectMapper mapper = new ObjectMapper();
         ArrayNode arrayNode = mapper.createArrayNode();
@@ -265,12 +263,14 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         String jsonArrayString = null;
         try {
             jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
-        } catch (JsonProcessingException e1) {
-            System.out.println("failed to serialize to jason array");
-            throw new ZoteroConnectionException("Could not serialize data.", e1);
+        } catch (JsonProcessingException e) {
+            System.out.println("failed to serialize to json array");
+            throw new ZoteroConnectionException("Could not serialize data.", e);
         }
-
+        
+        HttpHeaders headers = new HttpHeaders();
         HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
+        String url = String.format("groups/%s/%s", groupId, "items/");
         try {
             System.out.println("Posted request");
             System.out.println("Data posted"+ data);
@@ -300,7 +300,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not create item.", e);
         }
     }
-
+    
     private JsonNode createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes,
             boolean asArray) throws ZoteroConnectionException {
         FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields))
@@ -310,7 +310,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         try {
             if (!asArray) {
                 dataAsJson = mapper.writer(filters).writeValueAsString(item.getData());
-                System.out.println(dataAsJson);
             } else {
                 dataAsJson = mapper.writer(filters).writeValueAsString(new Data[] { item.getData() });
             }

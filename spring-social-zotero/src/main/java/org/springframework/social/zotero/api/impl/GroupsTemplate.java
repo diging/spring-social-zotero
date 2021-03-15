@@ -236,14 +236,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
             throws ZoteroConnectionException {
         String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
-        System.out.println(url);
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
         JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
         HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson, headers);
 
         try {
-            System.out.println(buildUri(url, false));
             restTemplate.exchange(buildUri(url, false), HttpMethod.PATCH, data, String.class);
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not update item.", e);
@@ -322,8 +320,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not deserialize data.", e);
         }
     }
-    
-    
 
     class ZoteroFieldFilter extends SimpleBeanPropertyFilter {
 

@@ -350,4 +350,20 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
 
     }
+    
+    @Override
+    public void deleteAll(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s", groupId, "items?itemKey=", citationKey);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("If-Unmodified-Since-Version", citationVersion + "");
+
+        HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
+
+        try {
+            restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not delete item.", e);
+        }
+    }
 }

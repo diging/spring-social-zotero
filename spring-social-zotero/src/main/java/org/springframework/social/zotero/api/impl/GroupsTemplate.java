@@ -352,8 +352,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
-    public void deleteMultipleItems(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException {
-        String url = String.format("groups/%s/%s", groupId, "items?itemKey=", citationKey);
+    public void deleteMultipleItems(String groupId, String citationKeys, Long citationVersion) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citationKeys);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Unmodified-Since-Version", citationVersion + "");

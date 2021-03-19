@@ -41,6 +41,8 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
+    
+    private static final int ZOTERO_BATCH_UPDATE_LIMIT = 50;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -268,6 +270,9 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     @Override
     public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields)
             throws ZoteroConnectionException {
+        if(items.size() > ZOTERO_BATCH_UPDATE_LIMIT) {
+            throw new IllegalArgumentException(String.format("Items size cannot be more than %s", ZOTERO_BATCH_UPDATE_LIMIT));
+        }
         List<JsonNode> dataAsJsonArray = new ArrayList<>();
         for (int i = 0; i < items.size(); i++) {
             dataAsJsonArray.add(createDataJson(items.get(i), ignoreFields, new ArrayList<String>(), false));

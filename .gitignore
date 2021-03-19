@@ -1,4 +1,5 @@
 /bin/
 .classpath
 .project
-spring-social-zotero/.classpath
+/spring-social-zotero/.classpath
+/spring-social-zotero/.project

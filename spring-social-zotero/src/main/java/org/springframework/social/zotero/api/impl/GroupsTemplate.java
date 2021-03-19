@@ -279,7 +279,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         try {
             jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
         } catch (JsonProcessingException e) {
-            System.out.println("failed to serialize to json array");
             throw new ZoteroConnectionException("Could not serialize data.", e);
         }
 

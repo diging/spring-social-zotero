@@ -38,5 +38,6 @@ public interface GroupsOperations {
 
     DeletedElements getDeletedElements(String groupId, long version);
 
-    void deleteMultipleItems(String groupId, String citationKeys, Long citationVersion) throws ZoteroConnectionException;
-}
+    void deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException;
+
+ }

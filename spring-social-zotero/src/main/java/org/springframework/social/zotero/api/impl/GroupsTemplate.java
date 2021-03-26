@@ -268,15 +268,15 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      * type to capture the response in both cases.
      */
     @Override
-    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<String> ignoreFields)
-            throws ZoteroConnectionException {
+    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
+            List<List<String>> validCreatorTypesList) throws ZoteroConnectionException {
         if (items.size() > ZOTERO_BATCH_UPDATE_LIMIT) {
             throw new IllegalArgumentException(
                     String.format("Items size cannot be more than %s", ZOTERO_BATCH_UPDATE_LIMIT));
         }
         List<JsonNode> dataAsJsonArray = new ArrayList<>();
         for (int i = 0; i < items.size(); i++) {
-            dataAsJsonArray.add(createDataJson(items.get(i), ignoreFields, new ArrayList<String>(), false));
+            dataAsJsonArray.add(createDataJson(items.get(i), ignoreFieldsList.get(i), validCreatorTypesList.get(i), false));
         }
         ObjectMapper mapper = new ObjectMapper();
         ArrayNode arrayNode = mapper.createArrayNode();

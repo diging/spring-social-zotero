@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
+
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -360,11 +361,10 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         headers.set("If-Unmodified-Since-Version", citationVersion + "");
 
         HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
-
-        try {
-            return restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
-        } catch (RestClientException e) {
-            throw new ZoteroConnectionException("Could not delete item.", e);
+        ResponseEntity<String> response = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
+        if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
+            throw new ZoteroConnectionException("Could not delete items");            
         }
+        return response;    
     }
 }

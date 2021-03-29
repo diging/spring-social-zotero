@@ -268,35 +268,42 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      * type to capture the response in both cases.
      */
     @Override
-    public ItemCreationResponse batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
+    public List<ItemCreationResponse> batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
             List<List<String>> validCreatorTypesList) throws ZoteroConnectionException {
-        if (items.size() > ZOTERO_BATCH_UPDATE_LIMIT) {
-            throw new IllegalArgumentException(
-                    String.format("Items size cannot be more than %s", ZOTERO_BATCH_UPDATE_LIMIT));
-        }
-        List<JsonNode> dataAsJsonArray = new ArrayList<>();
-        for (int i = 0; i < items.size(); i++) {
-            dataAsJsonArray.add(createDataJson(items.get(i), ignoreFieldsList.get(i), validCreatorTypesList.get(i), false));
-        }
-        ObjectMapper mapper = new ObjectMapper();
-        ArrayNode arrayNode = mapper.createArrayNode();
-        arrayNode.addAll(dataAsJsonArray);
-        String jsonArrayString = null;
-        try {
-            jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
-        } catch (JsonProcessingException e) {
-            throw new ZoteroConnectionException("Could not serialize data.", e);
-        }
+        int totalItems = items.size();
+        int itemsDone = 0;
+        List<ItemCreationResponse> responses = new ArrayList<>();
 
-        HttpHeaders headers = new HttpHeaders();
-        HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
-        String url = String.format("groups/%s/%s", groupId, "items/");
-        try {
-            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
-                    .getBody();
-        } catch (RestClientException e) {
-            throw new ZoteroConnectionException("Could not update items.", e);
+        while (totalItems >= itemsDone) {
+            int count = 0;
+            List<JsonNode> dataAsJsonArray = new ArrayList<>();
+            for (; itemsDone <= totalItems && count < ZOTERO_BATCH_UPDATE_LIMIT; count++, itemsDone++) {
+                dataAsJsonArray.add(
+                        createDataJson(items.get(itemsDone), ignoreFieldsList.get(itemsDone), validCreatorTypesList.get(itemsDone), false));
+            }
+            
+            ObjectMapper mapper = new ObjectMapper();
+            ArrayNode arrayNode = mapper.createArrayNode();
+            arrayNode.addAll(dataAsJsonArray);
+            String jsonArrayString = null;
+            try {
+                jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
+            } catch (JsonProcessingException e) {
+                throw new ZoteroConnectionException("Could not serialize data.", e);
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
+            String url = String.format("groups/%s/%s", groupId, "items/");
+            try {
+                ItemCreationResponse response = restTemplate
+                        .exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class).getBody();
+                responses.add(response);
+            } catch (RestClientException e) {
+                throw new ZoteroConnectionException("Could not update items.", e);
+            }
         }
+        return responses;
     }
 
     @Override

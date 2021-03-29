@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +24,11 @@ import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemCreationResponse;
+import org.springframework.social.zotero.api.ItemCreationResponse.FailedMessage;
 import org.springframework.social.zotero.api.ZoteroFields;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
+import org.springframework.social.zotero.api.ZoteroUpdateItemsStatuses;
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -268,9 +272,9 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      * type to capture the response in both cases.
      */
     @Override
-    public List<ItemCreationResponse> batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
+    public ZoteroUpdateItemsStatuses batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
             List<List<String>> validCreatorTypesList) throws ZoteroConnectionException {
-        int totalItems = items.size();
+        int totalItems = items.size() - 1;
         int itemsDone = 0;
         List<ItemCreationResponse> responses = new ArrayList<>();
 
@@ -303,7 +307,30 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
                 throw new ZoteroConnectionException("Could not update items.", e);
             }
         }
-        return responses;
+        return getStatusesFromResponse(responses);
+    }
+    
+    private ZoteroUpdateItemsStatuses getStatusesFromResponse(List<ItemCreationResponse> responses) {
+        ZoteroUpdateItemsStatuses statuses = new ZoteroUpdateItemsStatuses();
+        List<String> successKeys = new ArrayList<>();
+        List<String> failedKeys = new ArrayList<>();
+        List<String> unchangedKeys = new ArrayList<>();
+        for (ItemCreationResponse response : responses) {
+            Function<Map.Entry<String, String>, String> itemKeyExtractor = e -> e.getValue();
+            Function<Map.Entry<String, FailedMessage>, String> failedItemKeyExtractor = e -> e.getValue().getKey();
+
+            successKeys.addAll(extractItemKeys(response.getSuccess(), itemKeyExtractor));
+            failedKeys.addAll(extractItemKeys(response.getFailed(), failedItemKeyExtractor));
+            unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), itemKeyExtractor));
+        }
+        statuses.setSuccessItems(successKeys);
+        statuses.setFailedItems(failedKeys);
+        statuses.setUnchangedItems(unchangedKeys);
+        return statuses;
+    }
+
+    private <T> List<String> extractItemKeys(Map<String, T> map, Function<Map.Entry<String, T>, String> keyExtractor) {
+        return map.entrySet().stream().map(e -> keyExtractor.apply(e)).collect(Collectors.toList());
     }
 
     @Override

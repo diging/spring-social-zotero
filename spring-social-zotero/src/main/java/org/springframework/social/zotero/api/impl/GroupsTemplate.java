@@ -353,18 +353,21 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
-    public ResponseEntity<String> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
-        String citations = String.join(",", citationKeys);
-        String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
+    public List<String> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
+        List<String> responses = new ArrayList<String>();
+        ResponseEntity<String> zotereResponse;
+        for (int i = 0; i < citationKeys.size(); i += 50) {
+            List<String> subList = citationKeys.subList(i, Math.min(citationKeys.size(),i+50));
+            String citations = String.join(",", subList);
+            String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("If-Unmodified-Since-Version", citationVersion + "");
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("If-Unmodified-Since-Version", citationVersion + "");
 
-        HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
-        ResponseEntity<String> response = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
-        if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
-            throw new ZoteroConnectionException("Could not delete items");            
+            HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
+            zotereResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
+            responses.add(zotereResponse.getStatusCode().toString());
         }
-        return response;    
+        return responses;
     }
 }

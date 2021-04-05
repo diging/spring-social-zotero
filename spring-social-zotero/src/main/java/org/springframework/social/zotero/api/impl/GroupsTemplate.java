@@ -263,17 +263,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      * @param items        items that have to be updated
      * @param ignoreFields fields that are not necessary while updating citations
      * 
-     * @return ItemCreationResponse returns response from Zotero
-     */
-
-    /*
-     * The response returned by Zotero while creating a single item or updating
-     * multiple items is in the same format. So, we can use "ItemCreationResponse" data
-     * type to capture the response in both cases.
+     * @return ZoteroUpdateItemsStatuses returns items statuses
      */
     @Override
-    public ZoteroUpdateItemsStatuses batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
-            List<List<String>> validCreatorTypesList) throws ZoteroConnectionException {
+    public ZoteroUpdateItemsStatuses batchUpdateItems(String groupId, List<Item> items,
+            List<List<String>> ignoreFieldsList, List<List<String>> validCreatorTypesList)
+            throws ZoteroConnectionException {
         int totalItems = items.size() - 1;
         int itemsDone = 0;
         List<ItemCreationResponse> responses = new ArrayList<>();
@@ -282,10 +277,10 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             int count = 0;
             List<JsonNode> dataAsJsonArray = new ArrayList<>();
             for (; itemsDone <= totalItems && count < ZOTERO_BATCH_UPDATE_LIMIT; count++, itemsDone++) {
-                dataAsJsonArray.add(
-                        createDataJson(items.get(itemsDone), ignoreFieldsList.get(itemsDone), validCreatorTypesList.get(itemsDone), false));
+                dataAsJsonArray.add(createDataJson(items.get(itemsDone), ignoreFieldsList.get(itemsDone),
+                        validCreatorTypesList.get(itemsDone), false));
             }
-            
+
             ObjectMapper mapper = new ObjectMapper();
             ArrayNode arrayNode = mapper.createArrayNode();
             arrayNode.addAll(dataAsJsonArray);
@@ -308,29 +303,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             }
         }
         return getStatusesFromResponse(responses);
-    }
-    
-    private ZoteroUpdateItemsStatuses getStatusesFromResponse(List<ItemCreationResponse> responses) {
-        ZoteroUpdateItemsStatuses statuses = new ZoteroUpdateItemsStatuses();
-        List<String> successKeys = new ArrayList<>();
-        List<String> failedKeys = new ArrayList<>();
-        List<String> unchangedKeys = new ArrayList<>();
-        for (ItemCreationResponse response : responses) {
-            Function<Map.Entry<String, String>, String> itemKeyExtractor = e -> e.getValue();
-            Function<Map.Entry<String, FailedMessage>, String> failedItemKeyExtractor = e -> e.getValue().getKey();
-
-            successKeys.addAll(extractItemKeys(response.getSuccess(), itemKeyExtractor));
-            failedKeys.addAll(extractItemKeys(response.getFailed(), failedItemKeyExtractor));
-            unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), itemKeyExtractor));
-        }
-        statuses.setSuccessItems(successKeys);
-        statuses.setFailedItems(failedKeys);
-        statuses.setUnchangedItems(unchangedKeys);
-        return statuses;
-    }
-
-    private <T> List<String> extractItemKeys(Map<String, T> map, Function<Map.Entry<String, T>, String> keyExtractor) {
-        return map.entrySet().stream().map(e -> keyExtractor.apply(e)).collect(Collectors.toList());
     }
 
     @Override
@@ -434,5 +406,28 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not delete item.", e);
         }
 
+    }
+    
+    private ZoteroUpdateItemsStatuses getStatusesFromResponse(List<ItemCreationResponse> responses) {
+        ZoteroUpdateItemsStatuses statuses = new ZoteroUpdateItemsStatuses();
+        List<String> successKeys = new ArrayList<>();
+        List<String> failedKeys = new ArrayList<>();
+        List<String> unchangedKeys = new ArrayList<>();
+        for (ItemCreationResponse response : responses) {
+            Function<Map.Entry<String, String>, String> itemKeyExtractor = e -> e.getValue();
+            Function<Map.Entry<String, FailedMessage>, String> failedItemKeyExtractor = e -> e.getValue().getKey();
+
+            successKeys.addAll(extractItemKeys(response.getSuccess(), itemKeyExtractor));
+            failedKeys.addAll(extractItemKeys(response.getFailed(), failedItemKeyExtractor));
+            unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), itemKeyExtractor));
+        }
+        statuses.setSuccessItems(successKeys);
+        statuses.setFailedItems(failedKeys);
+        statuses.setUnchangedItems(unchangedKeys);
+        return statuses;
+    }
+
+    private <T> List<String> extractItemKeys(Map<String, T> map, Function<Map.Entry<String, T>, String> keyExtractor) {
+        return map.entrySet().stream().map(e -> keyExtractor.apply(e)).collect(Collectors.toList());
     }
 }

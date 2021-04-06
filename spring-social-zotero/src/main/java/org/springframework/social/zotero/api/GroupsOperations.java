@@ -2,7 +2,6 @@ package org.springframework.social.zotero.api;
 
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
 
 public interface GroupsOperations {
@@ -30,15 +29,12 @@ public interface GroupsOperations {
     ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields,
             List<String> validCreatorTypes) throws ZoteroConnectionException;
 
-    void deleteItem(String groupId, String citationKey, Long citationVersion)
-            throws ZoteroConnectionException;
-
     ZoteroResponse<Item> getGroupItemsByKey(String groupId, List<String> keys, boolean includeTrashed);
 
     ZoteroResponse<Item> getGroupItemsVersions(String groupId, long version, boolean includeTrashed);
 
     DeletedElements getDeletedElements(String groupId, long version);
 
-    List<String> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException;
+    List<ItemDeletionResponse> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException;
 
  }

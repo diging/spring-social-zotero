@@ -22,6 +22,7 @@ import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemCreationResponse;
+import org.springframework.social.zotero.api.ItemDeletionResponse;
 import org.springframework.social.zotero.api.ZoteroFields;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
@@ -290,6 +291,25 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
     }
 
+    @Override
+    public List<ItemDeletionResponse> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
+        List<ItemDeletionResponse> responses = new ArrayList<ItemDeletionResponse>();
+        ResponseEntity<String> zoteroResponse;
+        for (int i = 0; i < citationKeys.size(); i += 50) {
+            List<String> subList = citationKeys.subList(i, Math.min(citationKeys.size(),i+50));
+            String citations = String.join(",", subList);
+            String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("If-Unmodified-Since-Version", citationVersion + "");
+
+            HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
+            zoteroResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
+            responses.add(ItemDeletionResponse.getStatusDescription(zoteroResponse.getStatusCode().value()));
+        }
+        return responses;
+    }
+
     class ZoteroFieldFilter extends SimpleBeanPropertyFilter {
 
         private List<String> ignoreFields;
@@ -334,40 +354,4 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
     }
 
-    @Override
-    public void deleteItem(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException {
-        String url = String.format("groups/%s/%s/%s", groupId, "items", citationKey);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("If-Unmodified-Since-Version", citationVersion + "");
-
-        HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
-
-        try {
-            restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, String.class);
-
-        } catch (RestClientException e) {
-            throw new ZoteroConnectionException("Could not delete item.", e);
-        }
-
-    }
-    
-    @Override
-    public List<String> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
-        List<String> responses = new ArrayList<String>();
-        ResponseEntity<String> zotereResponse;
-        for (int i = 0; i < citationKeys.size(); i += 50) {
-            List<String> subList = citationKeys.subList(i, Math.min(citationKeys.size(),i+50));
-            String citations = String.join(",", subList);
-            String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("If-Unmodified-Since-Version", citationVersion + "");
-
-            HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
-            zotereResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
-            responses.add(zotereResponse.getStatusCode().toString());
-        }
-        return responses;
-    }
 }

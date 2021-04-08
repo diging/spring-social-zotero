@@ -294,7 +294,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     @Override
     public List<ItemDeletionResponse> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
         List<ItemDeletionResponse> responses = new ArrayList<ItemDeletionResponse>();
-        ResponseEntity<String> zoteroResponse;
         for (int i = 0; i < citationKeys.size(); i += 50) {
             List<String> subList = citationKeys.subList(i, Math.min(citationKeys.size(),i+50));
             String citations = String.join(",", subList);
@@ -304,7 +303,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             headers.set("If-Unmodified-Since-Version", citationVersion + "");
 
             HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
-            zoteroResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
+            ResponseEntity<String> zoteroResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
             responses.add(ItemDeletionResponse.getStatusDescription(zoteroResponse.getStatusCode().value()));
         }
         return responses;

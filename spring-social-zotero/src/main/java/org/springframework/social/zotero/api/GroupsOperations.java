@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 public interface GroupsOperations {
 
     Item[] getGroupItems(String groupId, int start, int numberOfItems, String sortBy);
@@ -25,7 +27,7 @@ public interface GroupsOperations {
             throws ZoteroConnectionException;
 
     ZoteroUpdateItemsStatuses batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
-            List<List<String>> validCreatorTypesList) throws ZoteroConnectionException;
+            List<List<String>> validCreatorTypesList) throws ZoteroConnectionException, JsonProcessingException;
 
     Long getGroupItemVersion(String groupId, String itemKey);
 

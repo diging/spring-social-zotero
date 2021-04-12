@@ -27,7 +27,6 @@ import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemCreationResponse;
-import org.springframework.social.zotero.api.ItemCreationResponse.FailedMessage;
 import org.springframework.social.zotero.api.ZoteroFields;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
@@ -271,7 +270,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     @Override
     public ZoteroUpdateItemsStatuses batchUpdateItems(String groupId, List<Item> items,
             List<List<String>> ignoreFieldsList, List<List<String>> validCreatorTypesList)
-            throws ZoteroConnectionException {
+            throws ZoteroConnectionException,JsonProcessingException {
         List<ItemCreationResponse> responses = new ArrayList<>();
         int totalItems = items.size() - 1;
         int itemsDone = 0;
@@ -289,13 +288,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             ObjectMapper mapper = new ObjectMapper();
             ArrayNode arrayNode = mapper.createArrayNode();
             arrayNode.addAll(dataAsJsonArray);
-            String jsonArrayString = null;
-            try {
-                jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
-            } catch (JsonProcessingException e) {
-                throw new ZoteroConnectionException("Could not serialize data.", e);
-            }
-
+            String jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
+          
             HttpHeaders headers = new HttpHeaders();
             HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
             String url = String.format("groups/%s/%s", groupId, "items/");
@@ -305,7 +299,11 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
                         .exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class).getBody();
                 responses.add(response);
             } catch (RestClientException e) {
-                throw new ZoteroConnectionException("Could not update items.", e);
+                // If an exception occurs here, stop the execution. Log it and return responses
+                // so far. All unprocessed itemsKeys will be added to failedKeys list by
+                // getStatusesFromResponse() method
+                logger.error("Zotero connection exception occured.", e);
+                return getStatusesFromResponse(responses, itemsKeys);
             }
         }
         return getStatusesFromResponse(responses, itemsKeys);
@@ -417,22 +415,20 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     private ZoteroUpdateItemsStatuses getStatusesFromResponse(List<ItemCreationResponse> responses,
             List<String> itemsKeys) {
         // Zotero is not sending failed items keys in response. So, we have to compute
-        // failed items keys
-        // on our own using success and unchanged keys
+        // failed items keys on our own using success and unchanged keys
 
         ZoteroUpdateItemsStatuses statuses = new ZoteroUpdateItemsStatuses();
         List<String> successKeys = new ArrayList<>();
-        List<String> failedKeys = new ArrayList<>();
         List<String> unchangedKeys = new ArrayList<>();
         for (ItemCreationResponse response : responses) {
-            Function<Map.Entry<String, String>, String> itemKeyExtractor = e -> e.getValue();
-            successKeys.addAll(extractItemKeys(response.getSuccess(), itemKeyExtractor));
-            unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), itemKeyExtractor));
+            successKeys.addAll(extractItemKeys(response.getSuccess(), e -> e.getValue()));
+            unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), e -> e.getValue()));
         }
 
-        Set<String> successUnchnagedKeys = Stream.of(successKeys, unchangedKeys).flatMap(Collection::stream)
+        Set<String> successUnchangedKeys = Stream.of(successKeys, unchangedKeys).flatMap(Collection::stream)
                 .collect(Collectors.toSet());
-        failedKeys = itemsKeys.stream().filter(e -> !successUnchnagedKeys.contains(e)).collect(Collectors.toList());
+        List<String> failedKeys = new ArrayList<>();
+        failedKeys = itemsKeys.stream().filter(e -> !successUnchangedKeys.contains(e)).collect(Collectors.toList());
 
         statuses.setSuccessItems(successKeys);
         statuses.setFailedItems(failedKeys);
@@ -440,7 +436,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         return statuses;
     }
 
-    private <T> List<String> extractItemKeys(Map<String, T> map, Function<Map.Entry<String, T>, String> keyExtractor) {
+    private List<String> extractItemKeys(Map<String, String> map, Function<Map.Entry<String, String>, String> keyExtractor) {
         return map.entrySet().stream().map(e -> keyExtractor.apply(e)).collect(Collectors.toList());
     }
 }

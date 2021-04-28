@@ -8,6 +8,9 @@ import java.util.Map;
  * This class lists possible responses 
  * of Zotero delete multiple items API
  * in the form of enum.
+ * 
+ * @author Sayali Tanawade
+ * 
  */
 public enum ItemDeletionResponse {
 

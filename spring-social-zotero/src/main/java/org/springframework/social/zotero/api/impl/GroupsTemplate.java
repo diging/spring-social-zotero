@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -420,9 +421,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         ZoteroUpdateItemsStatuses statuses = new ZoteroUpdateItemsStatuses();
         List<String> successKeys = new ArrayList<>();
         List<String> unchangedKeys = new ArrayList<>();
+        Set<String> failedMessages = new HashSet<String>();
         for (ItemCreationResponse response : responses) {
             successKeys.addAll(extractItemKeys(response.getSuccess(), e -> e.getValue()));
             unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), e -> e.getValue()));
+            failedMessages.addAll(response.getFailed().entrySet().stream().map(e -> e.getValue().getMessage())
+                    .collect(Collectors.toSet()));
         }
 
         Set<String> successUnchangedKeys = Stream.of(successKeys, unchangedKeys).flatMap(Collection::stream)
@@ -430,6 +434,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         List<String> failedKeys = new ArrayList<>();
         failedKeys = itemsKeys.stream().filter(e -> !successUnchangedKeys.contains(e)).collect(Collectors.toList());
 
+        statuses.setFailedMessages(failedMessages);
         statuses.setSuccessItems(successKeys);
         statuses.setFailedItems(failedKeys);
         statuses.setUnchangedItems(unchangedKeys);

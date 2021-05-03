@@ -1,11 +1,13 @@
 package org.springframework.social.zotero.api;
 
 import java.util.List;
+import java.util.Set;
 
 public class ZoteroUpdateItemsStatuses {
     private List<String> successItems;
     private List<String> failedItems;
     private List<String> unchagedItems;
+    private Set<String> failedMessages;
     
     public void setSuccessItems(List<String> successItems) {
         this.successItems = successItems;
@@ -29,5 +31,13 @@ public class ZoteroUpdateItemsStatuses {
     
     public List<String> getUnchangedItems() {
         return unchagedItems;
+    }
+    
+    public Set<String> getFailedMessages(){
+        return failedMessages;
+    }
+    
+    public void setFailedMessages(Set<String> failedMessages) {
+        this.failedMessages = failedMessages;
     }
 }

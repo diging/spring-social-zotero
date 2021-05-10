@@ -7,7 +7,8 @@ public class ZoteroUpdateItemsStatuses {
     private List<String> successItems;
     private List<String> failedItems;
     private List<String> unchagedItems;
-    private Set<String> failedMessages;
+    private List<String> failedMessages;
+    private Set<String> failedCodes;
     
     public void setSuccessItems(List<String> successItems) {
         this.successItems = successItems;
@@ -33,11 +34,19 @@ public class ZoteroUpdateItemsStatuses {
         return unchagedItems;
     }
     
-    public Set<String> getFailedMessages(){
+    public List<String> getFailedMessages(){
         return failedMessages;
     }
     
-    public void setFailedMessages(Set<String> failedMessages) {
+    public void setFailedMessages(List<String> failedMessages) {
         this.failedMessages = failedMessages;
     }
+    
+    public Set<String> getFailedCodes(){
+        return failedCodes;
+    }
+    
+    public void setFailedCodes(Set<String> failedCodes) {
+        this.failedCodes = failedCodes;
+    } 
 }

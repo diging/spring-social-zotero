@@ -30,7 +30,6 @@ public class ItemCreationResponse {
     public static class FailedMessage {
         private Integer code;
         private String message;
-        private String key;
         
         public Integer getCode() {
             return code;
@@ -43,14 +42,7 @@ public class ItemCreationResponse {
         }
         public void setMessage(String message) {
             this.message = message;
-        }
-        public String getKey() {
-            return key;
-        }
-        public void setKey(String key) {
-            this.key = key;
-        }
-        
+        }        
     }
 
 }

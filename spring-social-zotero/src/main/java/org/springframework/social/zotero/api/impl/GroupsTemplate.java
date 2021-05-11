@@ -28,6 +28,7 @@ import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemCreationResponse;
+import org.springframework.social.zotero.api.ItemCreationResponse.FailedMessage;
 import org.springframework.social.zotero.api.ZoteroFields;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
@@ -412,7 +413,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
 
     }
-    
+
     private ZoteroUpdateItemsStatuses getStatusesFromResponse(List<ItemCreationResponse> responses,
             List<String> itemsKeys) {
         // Zotero is not sending failed items keys in response. So, we have to compute
@@ -421,29 +422,25 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         ZoteroUpdateItemsStatuses statuses = new ZoteroUpdateItemsStatuses();
         List<String> successKeys = new ArrayList<>();
         List<String> unchangedKeys = new ArrayList<>();
-        List<String> failedMessages = new ArrayList<String>();
-        Set<String> failedCodes = new HashSet<String>();
-        
+        List<FailedMessage> failedMessages = new ArrayList<>();
+
         for (ItemCreationResponse response : responses) {
             successKeys.addAll(extractItemKeys(response.getSuccess(), e -> e.getValue()));
             unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), e -> e.getValue()));
-            failedMessages.addAll(response.getFailed().entrySet().stream().map(e -> e.getValue().getMessage())
-                    .collect(Collectors.toList()));
-            failedCodes.addAll(response.getFailed().entrySet().stream().map(e -> e.getValue().getCode().toString())
-                    .collect(Collectors.toSet()));
+            failedMessages.addAll(
+                    response.getFailed().entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList()));
         }
-        
+
         statuses.setSuccessItems(successKeys);
         statuses.setUnchangedItems(unchangedKeys);
         statuses.setFailedMessages(failedMessages);
-        statuses.setFailedCodes(failedCodes);
 
         Set<String> successUnchangedKeys = Stream.of(successKeys, unchangedKeys).flatMap(Collection::stream)
                 .collect(Collectors.toSet());
         List<String> failedKeys = new ArrayList<>();
         failedKeys = itemsKeys.stream().filter(e -> !successUnchangedKeys.contains(e)).collect(Collectors.toList());
         statuses.setFailedItems(failedKeys);
-       
+
         return statuses;
     }
 

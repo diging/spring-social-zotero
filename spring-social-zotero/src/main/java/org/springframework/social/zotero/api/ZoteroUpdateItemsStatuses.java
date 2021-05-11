@@ -1,14 +1,14 @@
 package org.springframework.social.zotero.api;
 
 import java.util.List;
-import java.util.Set;
+
+import org.springframework.social.zotero.api.ItemCreationResponse.FailedMessage;
 
 public class ZoteroUpdateItemsStatuses {
     private List<String> successItems;
     private List<String> failedItems;
     private List<String> unchagedItems;
-    private List<String> failedMessages;
-    private Set<String> failedCodes;
+    private List<FailedMessage> failedMessages;
     
     public void setSuccessItems(List<String> successItems) {
         this.successItems = successItems;
@@ -34,19 +34,11 @@ public class ZoteroUpdateItemsStatuses {
         return unchagedItems;
     }
     
-    public List<String> getFailedMessages(){
+    public List<FailedMessage> getFailedMessages(){
         return failedMessages;
     }
     
-    public void setFailedMessages(List<String> failedMessages) {
+    public void setFailedMessages(List<FailedMessage> failedMessages) {
         this.failedMessages = failedMessages;
-    }
-    
-    public Set<String> getFailedCodes(){
-        return failedCodes;
-    }
-    
-    public void setFailedCodes(Set<String> failedCodes) {
-        this.failedCodes = failedCodes;
     } 
 }

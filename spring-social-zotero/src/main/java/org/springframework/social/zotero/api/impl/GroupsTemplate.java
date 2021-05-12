@@ -264,7 +264,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
      * 
      * @param groupId      group id of citations
      * @param items        items that have to be updated
-     * @param ignoreFields fields that are not necessary while updating citations
+     * @param ignoreFieldsList fields that are not necessary while updating citations
+     * @param validCreatorTypesList valid creator types list
      * 
      * @return ZoteroUpdateItemsStatuses returns items statuses
      */

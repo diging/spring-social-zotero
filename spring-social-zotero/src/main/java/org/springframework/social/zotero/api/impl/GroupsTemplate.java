@@ -218,6 +218,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
+    public List<Item> getGroupItemChildren(String groupId, String itemKey) {
+        String url = String.format("groups/%s/%s/%s/children", groupId, "items", itemKey);
+        return restTemplate.exchange(buildUri(url, "format", "json", false), HttpMethod.GET, null, new ParameterizedTypeReference<List<Item>>() {}).getBody();
+    }
+    
+    @Override
     public DeletedElements getDeletedElements(String groupId, long version) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("since", version + "");
@@ -257,6 +263,30 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
     }
     
+    @Override
+    public void updateNote(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
+        FilterProvider filter = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields));
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode dataAsJson;
+        try {
+            dataAsJson = mapper.readTree(mapper.writer(filter).writeValueAsString(item.getData()));
+        } catch (JsonProcessingException e1) {
+            // TODO Auto-generated catch block
+            throw new ZoteroConnectionException("Could not serialize data.", e1);
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            throw new ZoteroConnectionException("Could not deserialize data.", e1);
+        }
+        HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson, headers);
+        try {
+            restTemplate.exchange(buildUri(url, false), HttpMethod.PATCH, data, String.class);
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not update item.", e);
+        }
+    }
     
     
     /**
@@ -320,6 +350,32 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         ignoreFields.add(ZoteroFields.KEY);
 
         JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, true);
+        HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson);
+
+        try {
+            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
+                    .getBody();
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not create item.", e);
+        }
+    }
+    
+    @Override
+    public ItemCreationResponse createNote(String groupId, Item item, List<String> ignoreFields) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s", groupId, "items");
+
+        FilterProvider filter = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields));
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode dataAsJson;
+        try {
+            dataAsJson = mapper.readTree(mapper.writer(filter).writeValueAsString(new Data[] { item.getData() }));
+        } catch (JsonProcessingException e1) {
+            // TODO Auto-generated catch block
+            throw new ZoteroConnectionException("Could not serialize data.", e1);
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            throw new ZoteroConnectionException("Could not deserialize data.", e1);
+        }
         HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson);
 
         try {

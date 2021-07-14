@@ -27,7 +27,7 @@ public interface GroupsOperations {
 
     void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
             throws ZoteroConnectionException;
-    
+
     ZoteroUpdateItemsStatuses batchUpdateItems(String groupId, List<Item> items, List<List<String>> ignoreFieldsList,
             List<List<String>> validCreatorTypesList) throws ZoteroConnectionException, JsonProcessingException;
 
@@ -35,7 +35,7 @@ public interface GroupsOperations {
 
     ItemCreationResponse createItem(String groupId, Item item, List<String> ignoreFields,
             List<String> validCreatorTypes) throws ZoteroConnectionException;
-    
+
     void deleteItem(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException;
 
     ZoteroResponse<Item> getGroupItemsByKey(String groupId, List<String> keys, boolean includeTrashed);

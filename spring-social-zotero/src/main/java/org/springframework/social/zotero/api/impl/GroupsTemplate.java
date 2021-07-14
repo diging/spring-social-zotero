@@ -50,8 +50,6 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
     
     private static final int ZOTERO_BATCH_UPDATE_LIMIT = 50;
-    
-    private static final String ZOTERO_NOTE_KEY = "note";
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

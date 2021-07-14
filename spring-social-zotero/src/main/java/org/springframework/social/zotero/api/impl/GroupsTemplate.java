@@ -50,6 +50,8 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
     
     private static final int ZOTERO_BATCH_UPDATE_LIMIT = 50;
+    
+    private static final String ZOTERO_NOTE_KEY = "note";
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -253,13 +255,8 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
-        JsonNode dataAsJson ;
-        if(item.getData().getItemType().equals("note")) {
-            dataAsJson = createDataJsonForNote(item, ignoreFields, false);
-        } else {
-            dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
-        }
         
+        JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
         HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson, headers);
 
         try {
@@ -267,7 +264,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not update item.", e);
         }
-    }    
+    }   
     
     /**
      * This method makes a batch request call to Zotero to update items
@@ -329,12 +326,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         ignoreFields.add(ZoteroFields.VERSION);
         ignoreFields.add(ZoteroFields.KEY);
 
-        JsonNode dataAsJson;
-        if(item.getData().getItemType().equals("note")) {
-            dataAsJson = createDataJsonForNote(item, ignoreFields, true);
-        } else {
-            dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, true);
-        }
+        JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, true);
         HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson);
 
         try {
@@ -364,26 +356,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             return mapper.readTree(dataAsJson);
         } catch (IOException e) {
             throw new ZoteroConnectionException("Could not deserialize data.", e);
-        }
-    }
-    
-    private JsonNode createDataJsonForNote(Item item, List<String> ignoreFields, boolean asArray) throws ZoteroConnectionException {
-        FilterProvider filter = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields));
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode dataAsJson;
-        try {
-            if(asArray) {
-                dataAsJson = mapper.readTree(mapper.writer(filter).writeValueAsString(new Data[] { item.getData() }));
-            } else {
-                dataAsJson = mapper.readTree(mapper.writer(filter).writeValueAsString(item.getData()));
-            }
-            return dataAsJson;
-        } catch (JsonProcessingException e1) {
-            // TODO Auto-generated catch block
-            throw new ZoteroConnectionException("Could not serialize data.", e1);
-        } catch (IOException e1) {
-            // TODO Auto-generated catch block
-            throw new ZoteroConnectionException("Could not deserialize data.", e1);
         }
     }
 

@@ -18,6 +18,8 @@ public interface GroupsOperations {
             Long groupVersion);
 
     Item getGroupItem(String groupId, String itemKey);
+    
+    List<Item> getGroupItemChildren(String groupId, String itemKey);
 
     ZoteroResponse<Group> getGroupsVersions();
 

@@ -218,6 +218,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
+    public List<Item> getGroupItemChildren(String groupId, String itemKey) {
+        String url = String.format("groups/%s/%s/%s/children", groupId, "items", itemKey);
+        return restTemplate.exchange(buildUri(url, "format", "json", false), HttpMethod.GET, null, new ParameterizedTypeReference<List<Item>>() {}).getBody();
+    }
+    
+    @Override
     public DeletedElements getDeletedElements(String groupId, long version) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("since", version + "");

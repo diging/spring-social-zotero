@@ -42,8 +42,7 @@ public class ItemCreationResponse {
         }
         public void setMessage(String message) {
             this.message = message;
-        }
-        
+        }        
     }
 
 }

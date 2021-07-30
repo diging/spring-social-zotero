@@ -2,10 +2,15 @@ package org.springframework.social.zotero.api.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,10 +27,12 @@ import org.springframework.social.zotero.api.Group;
 import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemCreationResponse;
+import org.springframework.social.zotero.api.ItemCreationResponse.FailedMessage;
 import org.springframework.social.zotero.api.ItemDeletionResponse;
 import org.springframework.social.zotero.api.ZoteroFields;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
+import org.springframework.social.zotero.api.ZoteroUpdateItemsStatuses;
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -35,6 +42,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -42,6 +50,8 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
 
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
+    
+    private static final int ZOTERO_BATCH_UPDATE_LIMIT = 50;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -210,6 +220,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
     
     @Override
+    public List<Item> getGroupItemChildren(String groupId, String itemKey) {
+        String url = String.format("groups/%s/%s/%s/children", groupId, "items", itemKey);
+        return restTemplate.exchange(buildUri(url, "format", "json", false), HttpMethod.GET, null, new ParameterizedTypeReference<List<Item>>() {}).getBody();
+    }
+    
+    @Override
     public DeletedElements getDeletedElements(String groupId, long version) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("since", version + "");
@@ -237,7 +253,6 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public void updateItem(String groupId, Item item, List<String> ignoreFields, List<String> validCreatorTypes)
             throws ZoteroConnectionException {
         String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
-
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
         JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
@@ -248,6 +263,60 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not update item.", e);
         }
+    }
+    
+    
+    
+    /**
+     * This method makes a batch request call to Zotero to update items
+     * 
+     * @param groupId      group id of citations
+     * @param items        items that have to be updated
+     * @param ignoreFieldsList fields that are not necessary while updating citations
+     * @param validCreatorTypesList valid creator types list
+     * 
+     * @return ZoteroUpdateItemsStatuses returns items statuses
+     */
+    @Override
+    public ZoteroUpdateItemsStatuses batchUpdateItems(String groupId, List<Item> items,
+            List<List<String>> ignoreFieldsList, List<List<String>> validCreatorTypesList)
+            throws ZoteroConnectionException,JsonProcessingException {
+        List<ItemCreationResponse> responses = new ArrayList<>();
+        int totalItems = items.size() - 1;
+        int itemsDone = 0;
+        List<String> itemsKeys = new ArrayList<>();
+
+        while (totalItems >= itemsDone) {
+            int count = 0;
+            List<JsonNode> dataAsJsonArray = new ArrayList<>();
+            for (; itemsDone <= totalItems && count < ZOTERO_BATCH_UPDATE_LIMIT; count++, itemsDone++) {
+                dataAsJsonArray.add(createDataJson(items.get(itemsDone), ignoreFieldsList.get(itemsDone),
+                        validCreatorTypesList.get(itemsDone), false));
+                itemsKeys.add(items.get(itemsDone).getKey());
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            ArrayNode arrayNode = mapper.createArrayNode();
+            arrayNode.addAll(dataAsJsonArray);
+            String jsonArrayString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
+          
+            HttpHeaders headers = new HttpHeaders();
+            HttpEntity<String> data = new HttpEntity<String>(jsonArrayString, headers);
+            String url = String.format("groups/%s/%s", groupId, "items/");
+            
+            try {
+                ItemCreationResponse response = restTemplate
+                        .exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class).getBody();
+                responses.add(response);
+            } catch (RestClientException e) {
+                // If an exception occurs here, stop the execution. Log it and return responses
+                // so far. All unprocessed itemsKeys will be added to failedKeys list by
+                // getStatusesFromResponse() method
+                logger.error("Zotero connection exception occured.", e);
+                return getStatusesFromResponse(responses, itemsKeys);
+            }
+        }
+        return getStatusesFromResponse(responses, itemsKeys);
     }
 
     @Override
@@ -268,7 +337,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not create item.", e);
         }
     }
-
+    
     private JsonNode createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes,
             boolean asArray) throws ZoteroConnectionException {
         FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields))
@@ -353,4 +422,55 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         }
     }
 
+    @Override
+    public void deleteItem(String groupId, String citationKey, Long citationVersion) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/%s/%s", groupId, "items", citationKey);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("If-Unmodified-Since-Version", citationVersion + "");
+
+        HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
+
+        try {
+            restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, String.class);
+
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not delete item.", e);
+        }
+
+    }
+
+    private ZoteroUpdateItemsStatuses getStatusesFromResponse(List<ItemCreationResponse> responses,
+            List<String> itemsKeys) {
+        // Zotero is not sending failed items keys in response. So, we have to compute
+        // failed items keys on our own using success and unchanged keys
+
+        ZoteroUpdateItemsStatuses statuses = new ZoteroUpdateItemsStatuses();
+        List<String> successKeys = new ArrayList<>();
+        List<String> unchangedKeys = new ArrayList<>();
+        List<FailedMessage> failedMessages = new ArrayList<>();
+
+        for (ItemCreationResponse response : responses) {
+            successKeys.addAll(extractItemKeys(response.getSuccess(), e -> e.getValue()));
+            unchangedKeys.addAll(extractItemKeys(response.getUnchanged(), e -> e.getValue()));
+            failedMessages.addAll(
+                    response.getFailed().entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList()));
+        }
+
+        statuses.setSuccessItems(successKeys);
+        statuses.setUnchangedItems(unchangedKeys);
+        statuses.setFailedMessages(failedMessages);
+
+        Set<String> successUnchangedKeys = Stream.of(successKeys, unchangedKeys).flatMap(Collection::stream)
+                .collect(Collectors.toSet());
+        List<String> failedKeys = new ArrayList<>();
+        failedKeys = itemsKeys.stream().filter(e -> !successUnchangedKeys.contains(e)).collect(Collectors.toList());
+        statuses.setFailedItems(failedKeys);
+
+        return statuses;
+    }
+
+    private List<String> extractItemKeys(Map<String, String> map, Function<Map.Entry<String, String>, String> keyExtractor) {
+        return map.entrySet().stream().map(e -> keyExtractor.apply(e)).collect(Collectors.toList());
+    }
 }

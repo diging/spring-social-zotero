@@ -361,10 +361,10 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public List<ItemDeletionResponse> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
-        List<ItemDeletionResponse> responses = new ArrayList<ItemDeletionResponse>();
-        for (int i = 0; i < citationKeys.size(); i += 50) {
-            List<String> subList = citationKeys.subList(i, Math.min(citationKeys.size(),i+50));
+    public Map<ItemDeletionResponse, List<String>> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
+        Map<ItemDeletionResponse, List<String>> responses = new HashMap<>();
+        for (int i = 0; i < citationKeys.size(); i += ZOTERO_BATCH_UPDATE_LIMIT) {
+            List<String> subList = citationKeys.subList(i, Math.min(citationKeys.size(),i+ZOTERO_BATCH_UPDATE_LIMIT));
             String citations = String.join(",", subList);
             String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
 
@@ -373,7 +373,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
 
             HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
             ResponseEntity<String> zoteroResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
-            responses.add(ItemDeletionResponse.getStatusDescription(zoteroResponse.getStatusCode().value()));
+            ItemDeletionResponse deletionResponse = ItemDeletionResponse.getStatusDescription(zoteroResponse.getStatusCode().value());
+            List<String> responseList = responses.getOrDefault(deletionResponse, new ArrayList<>());
+            for (String key : subList) {
+                responseList.add(key);
+            }
+            responses.put(deletionResponse, responseList);
         }
         return responses;
     }

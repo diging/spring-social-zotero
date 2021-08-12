@@ -1,6 +1,7 @@
 package org.springframework.social.zotero.api;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
 
@@ -44,6 +45,6 @@ public interface GroupsOperations {
 
     DeletedElements getDeletedElements(String groupId, long version);
 
-    List<ItemDeletionResponse> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException;
+    Map<ItemDeletionResponse, List<String>> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException;
 
  }

@@ -51,7 +51,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
     
-    private static final int ZOTERO_BATCH_UPDATE_LIMIT = 50;
+    private static final int ZOTERO_BATCH_LIMIT = 50;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -289,7 +289,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         while (totalItems >= itemsDone) {
             int count = 0;
             List<JsonNode> dataAsJsonArray = new ArrayList<>();
-            for (; itemsDone <= totalItems && count < ZOTERO_BATCH_UPDATE_LIMIT; count++, itemsDone++) {
+            for (; itemsDone <= totalItems && count < ZOTERO_BATCH_LIMIT; count++, itemsDone++) {
                 dataAsJsonArray.add(createDataJson(items.get(itemsDone), ignoreFieldsList.get(itemsDone),
                         validCreatorTypesList.get(itemsDone), false));
                 itemsKeys.add(items.get(itemsDone).getKey());
@@ -364,9 +364,9 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     public Map<ItemDeletionResponse, List<String>> deleteMultipleItems(String groupId, List<String> citationKeys,
             Long citationVersion) throws ZoteroConnectionException {
         Map<ItemDeletionResponse, List<String>> responses = new HashMap<>();
-        for (int i = 0; i < citationKeys.size(); i += ZOTERO_BATCH_UPDATE_LIMIT) {
+        for (int i = 0; i < citationKeys.size(); i += ZOTERO_BATCH_LIMIT) {
             List<String> subList = citationKeys.subList(i,
-                    Math.min(citationKeys.size(), i + ZOTERO_BATCH_UPDATE_LIMIT));
+                    Math.min(citationKeys.size(), i + ZOTERO_BATCH_LIMIT));
             String citations = String.join(",", subList);
             String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
 

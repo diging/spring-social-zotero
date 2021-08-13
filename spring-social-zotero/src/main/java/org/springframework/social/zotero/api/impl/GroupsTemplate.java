@@ -361,10 +361,12 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
     }
 
     @Override
-    public Map<ItemDeletionResponse, List<String>> deleteMultipleItems(String groupId, List<String> citationKeys, Long citationVersion) throws ZoteroConnectionException {
+    public Map<ItemDeletionResponse, List<String>> deleteMultipleItems(String groupId, List<String> citationKeys,
+            Long citationVersion) throws ZoteroConnectionException {
         Map<ItemDeletionResponse, List<String>> responses = new HashMap<>();
         for (int i = 0; i < citationKeys.size(); i += ZOTERO_BATCH_UPDATE_LIMIT) {
-            List<String> subList = citationKeys.subList(i, Math.min(citationKeys.size(),i+ZOTERO_BATCH_UPDATE_LIMIT));
+            List<String> subList = citationKeys.subList(i,
+                    Math.min(citationKeys.size(), i + ZOTERO_BATCH_UPDATE_LIMIT));
             String citations = String.join(",", subList);
             String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
 
@@ -372,12 +374,13 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             headers.set("If-Unmodified-Since-Version", citationVersion + "");
 
             HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
-            ResponseEntity<String> zoteroResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE, dataHeader, new ParameterizedTypeReference<String>() {});
-            ItemDeletionResponse deletionResponse = ItemDeletionResponse.getStatusDescription(zoteroResponse.getStatusCode().value());
+            ResponseEntity<String> zoteroResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE,
+                    dataHeader, new ParameterizedTypeReference<String>() {
+                    });
+            ItemDeletionResponse deletionResponse = ItemDeletionResponse
+                    .getStatusDescription(zoteroResponse.getStatusCode().value());
             List<String> responseList = responses.getOrDefault(deletionResponse, new ArrayList<>());
-            for (String key : subList) {
-                responseList.add(key);
-            }
+            subList.forEach(key -> responseList.add(key));
             responses.put(deletionResponse, responseList);
         }
         return responses;

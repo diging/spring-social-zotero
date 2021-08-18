@@ -380,7 +380,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             ItemDeletionResponse deletionResponse = ItemDeletionResponse
                     .getStatusDescription(zoteroResponse.getStatusCode().value());
             List<String> responseList = responses.getOrDefault(deletionResponse, new ArrayList<>());
-            subList.forEach(key -> responseList.add(key));
+            responseList.addAll(subList);
             responses.put(deletionResponse, responseList);
         }
         return responses;

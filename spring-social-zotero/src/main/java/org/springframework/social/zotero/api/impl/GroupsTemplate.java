@@ -28,6 +28,7 @@ import org.springframework.social.zotero.api.GroupsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ItemCreationResponse;
 import org.springframework.social.zotero.api.ItemCreationResponse.FailedMessage;
+import org.springframework.social.zotero.api.ItemDeletionResponse;
 import org.springframework.social.zotero.api.ZoteroFields;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
@@ -47,9 +48,10 @@ import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
+
 public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOperations {
     
-    private static final int ZOTERO_BATCH_UPDATE_LIMIT = 50;
+    private static final int ZOTERO_BATCH_LIMIT = 50;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -286,7 +288,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         while (totalItems >= itemsDone) {
             int count = 0;
             List<JsonNode> dataAsJsonArray = new ArrayList<>();
-            for (; itemsDone <= totalItems && count < ZOTERO_BATCH_UPDATE_LIMIT; count++, itemsDone++) {
+            for (; itemsDone <= totalItems && count < ZOTERO_BATCH_LIMIT; count++, itemsDone++) {
                 dataAsJsonArray.add(createDataJson(items.get(itemsDone), ignoreFieldsList.get(itemsDone),
                         validCreatorTypesList.get(itemsDone), false));
                 itemsKeys.add(items.get(itemsDone).getKey());
@@ -355,6 +357,32 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         } catch (IOException e) {
             throw new ZoteroConnectionException("Could not deserialize data.", e);
         }
+    }
+
+    @Override
+    public Map<ItemDeletionResponse, List<String>> deleteMultipleItems(String groupId, List<String> citationKeys,
+            Long citationVersion) throws ZoteroConnectionException {
+        Map<ItemDeletionResponse, List<String>> responses = new HashMap<>();
+        for (int i = 0; i < citationKeys.size(); i += ZOTERO_BATCH_LIMIT) {
+            List<String> subList = citationKeys.subList(i,
+                    Math.min(citationKeys.size(), i + ZOTERO_BATCH_LIMIT));
+            String citations = String.join(",", subList);
+            String url = String.format("groups/%s/%s", groupId, "items?itemKey=" + citations);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("If-Unmodified-Since-Version", citationVersion + "");
+
+            HttpEntity<JsonNode> dataHeader = new HttpEntity<JsonNode>(headers);
+            ResponseEntity<String> zoteroResponse = restTemplate.exchange(buildUri(url, false), HttpMethod.DELETE,
+                    dataHeader, new ParameterizedTypeReference<String>() {
+                    });
+            ItemDeletionResponse deletionResponse = ItemDeletionResponse
+                    .getStatusDescription(zoteroResponse.getStatusCode().value());
+            List<String> responseList = responses.getOrDefault(deletionResponse, new ArrayList<>());
+            responseList.addAll(subList);
+            responses.put(deletionResponse, responseList);
+        }
+        return responses;
     }
 
     class ZoteroFieldFilter extends SimpleBeanPropertyFilter {

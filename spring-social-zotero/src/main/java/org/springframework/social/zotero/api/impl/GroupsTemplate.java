@@ -255,6 +255,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         String url = String.format("groups/%s/%s/%s", groupId, "items", item.getKey());
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Unmodified-Since-Version", item.getData().getVersion() + "");
+        
         JsonNode dataAsJson = createDataJson(item, ignoreFields, validCreatorTypes, false);
         HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson, headers);
 
@@ -263,9 +264,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not update item.", e);
         }
-    }
-    
-    
+    }   
     
     /**
      * This method makes a batch request call to Zotero to update items
@@ -337,7 +336,7 @@ public class GroupsTemplate extends AbstractZoteroOperations implements GroupsOp
             throw new ZoteroConnectionException("Could not create item.", e);
         }
     }
-    
+   
     private JsonNode createDataJson(Item item, List<String> ignoreFields, List<String> validCreatorTypes,
             boolean asArray) throws ZoteroConnectionException {
         FilterProvider filters = new SimpleFilterProvider().addFilter("dataFilter", new ZoteroFieldFilter(ignoreFields))

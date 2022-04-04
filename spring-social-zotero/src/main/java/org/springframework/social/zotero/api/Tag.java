@@ -5,6 +5,11 @@ public class Tag {
     private String tag;
     private int type;
     
+    public Tag() {
+    }
+    public Tag(String tag) {
+        this.tag = tag;
+    }
     public String getTag() {
         return tag;
     }

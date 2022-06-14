@@ -10,6 +10,7 @@ public class Item {
     private Library library;
     private Data data;
     private Meta meta;
+    private boolean isDeleted;
     
     public String getKey() {
         return key;
@@ -41,7 +42,13 @@ public class Item {
     public void setMeta(Meta meta) {
         this.meta = meta;
     }
-
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+    public void setDeleted(boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+    
     public boolean isMetaDataNote() {
         if (this.data.getItemType().equals(ZOTERO_NOTE_KEY)
                 && this.data.getTags().stream().anyMatch(tag -> tag.getTag().equals(CITESPHERE_METADATA_TAG))) {

@@ -47,6 +47,7 @@ public class Data {
     private List<Tag> tags;
     private List<String> collections;
     private int deleted;
+    private int hidden;
     
     public String getKey() {
         return key;
@@ -287,5 +288,11 @@ public class Data {
     }
     public void setDeleted(int deleted) {
         this.deleted = deleted;
+    }
+    public int getHidden() {
+        return hidden;
+    }
+    public void setHidden(int hidden) {
+        this.hidden = hidden;
     }
 }

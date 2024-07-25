@@ -35,7 +35,7 @@ public class Data {
     private String seriesText;
     private String journalAbbreviation;
     private String language;
-    private String doi;
+    private String DOI;
     private String issn;
     private String shortTitle;
     private String archive;
@@ -216,11 +216,13 @@ public class Data {
     public void setLanguage(String language) {
         this.language = language;
     }
-    public String getDoi() {
-        return doi;
+    public String getDOI() {
+        System.out.println("====================== in get " + DOI);
+        return DOI;
     }
-    public void setDoi(String doi) {
-        this.doi = doi;
+    public void setDOI(String dOI) {
+        System.out.println("====================== in set " + dOI);
+        DOI = dOI;
     }
     public String getIssn() {
         return issn;

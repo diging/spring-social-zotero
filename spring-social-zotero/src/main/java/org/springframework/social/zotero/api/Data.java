@@ -3,6 +3,7 @@ package org.springframework.social.zotero.api;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonFilter("dataFilter")
 public class Data {
@@ -35,7 +36,9 @@ public class Data {
     private String seriesText;
     private String journalAbbreviation;
     private String language;
+    @JsonProperty("DOI")
     private String DOI;
+    @JsonProperty("ISSN")
     private String issn;
     private String shortTitle;
     private String archive;
@@ -217,11 +220,9 @@ public class Data {
         this.language = language;
     }
     public String getDOI() {
-        System.out.println("====================== in get " + DOI);
         return DOI;
     }
     public void setDOI(String dOI) {
-        System.out.println("====================== in set " + dOI);
         DOI = dOI;
     }
     public String getIssn() {

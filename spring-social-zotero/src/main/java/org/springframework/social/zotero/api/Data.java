@@ -37,7 +37,7 @@ public class Data {
     private String journalAbbreviation;
     private String language;
     @JsonProperty("DOI")
-    private String DOI;
+    private String doi;
     @JsonProperty("ISSN")
     private String issn;
     private String shortTitle;
@@ -219,11 +219,11 @@ public class Data {
     public void setLanguage(String language) {
         this.language = language;
     }
-    public String getDOI() {
-        return DOI;
+    public String getDoi() {
+        return doi;
     }
-    public void setDOI(String dOI) {
-        DOI = dOI;
+    public void setDoi(String doi) {
+        this.doi = doi;
     }
     public String getIssn() {
         return issn;

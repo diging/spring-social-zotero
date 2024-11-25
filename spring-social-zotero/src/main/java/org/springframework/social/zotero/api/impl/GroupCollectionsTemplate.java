@@ -20,6 +20,8 @@ import org.springframework.social.zotero.api.GroupCollectionsOperations;
 import org.springframework.social.zotero.api.Item;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
+import org.springframework.social.zotero.exception.ZoteroConnectionException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -198,5 +200,25 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
             }
         }
         return -1;
+    }
+
+    @Override
+    public Collection createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException {
+        String url = String.format("groups/%s/collections", groupId);
+        
+        ObjectMapper mapper = new ObjectMapper();
+        
+        JsonNode dataAsJson = mapper.createObjectNode()
+                .put("name", collectionName)
+                .put("parentCollection", parentCollection);
+        
+        HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson);
+        
+        try {
+            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, Collection.class)
+                    .getBody();
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not create item.", e);
+        }
     }
 }

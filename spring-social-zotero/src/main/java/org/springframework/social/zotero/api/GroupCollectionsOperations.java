@@ -2,6 +2,8 @@ package org.springframework.social.zotero.api;
 
 import java.util.List;
 
+import org.springframework.social.zotero.exception.ZoteroConnectionException;
+
 public interface GroupCollectionsOperations extends ZoteroOperations {
 
     ZoteroResponse<Collection> getTopCollections(String groupId, int start, int numberOfItems, String sortBy,
@@ -16,5 +18,7 @@ public interface GroupCollectionsOperations extends ZoteroOperations {
     ZoteroResponse<Collection> getCollectionsVersions(String groupId, Long groupVersion);
 
     ZoteroResponse<Collection> getCollectionsByKey(String groupId, List<String> keys);
+    
+    Collection createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException;
 
 }

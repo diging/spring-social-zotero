@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.social.zotero.api.Collection;
 import org.springframework.social.zotero.api.GroupCollectionsOperations;
 import org.springframework.social.zotero.api.Item;
+import org.springframework.social.zotero.api.ItemCreationResponse;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
 import org.springframework.social.zotero.exception.ZoteroConnectionException;
@@ -26,6 +27,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 public class GroupCollectionsTemplate extends AbstractZoteroOperations implements GroupCollectionsOperations {
 
@@ -203,7 +205,7 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
     }
 
     @Override
-    public Collection createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException {
+    public ItemCreationResponse createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException {
         String url = String.format("groups/%s/collections", groupId);
         
         ObjectMapper mapper = new ObjectMapper();
@@ -212,10 +214,13 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
                 .put("name", collectionName)
                 .put("parentCollection", parentCollection);
         
-        HttpEntity<JsonNode> data = new HttpEntity<JsonNode>(dataAsJson);
+        ArrayNode jsonArray = mapper.createArrayNode();
+        jsonArray.add(dataAsJson);
+        
+        HttpEntity<ArrayNode> data = new HttpEntity<ArrayNode>(jsonArray);
         
         try {
-            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, Collection.class)
+            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
                     .getBody();
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not create item.", e);

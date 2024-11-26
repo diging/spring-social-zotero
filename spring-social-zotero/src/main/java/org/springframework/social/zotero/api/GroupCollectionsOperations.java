@@ -19,6 +19,6 @@ public interface GroupCollectionsOperations extends ZoteroOperations {
 
     ZoteroResponse<Collection> getCollectionsByKey(String groupId, List<String> keys);
     
-    Collection createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException;
+    ItemCreationResponse createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException;
 
 }

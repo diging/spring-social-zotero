@@ -41,7 +41,6 @@ public class Item {
     public void setMeta(Meta meta) {
         this.meta = meta;
     }
-
     public boolean isMetaDataNote() {
         if (this.data.getItemType().equals(ZOTERO_NOTE_KEY)
                 && this.data.getTags().stream().anyMatch(tag -> tag.getTag().equals(CITESPHERE_METADATA_TAG))) {

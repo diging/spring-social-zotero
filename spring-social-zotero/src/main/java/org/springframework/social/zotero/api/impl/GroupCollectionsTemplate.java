@@ -206,7 +206,6 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
 
     @Override
     public ItemCreationResponse createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException {
-        String url = String.format("groups/%s/collections", groupId);
         
         ObjectMapper mapper = new ObjectMapper();
         
@@ -220,7 +219,9 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         HttpEntity<ArrayNode> data = new HttpEntity<ArrayNode>(jsonArray);
         
         try {
-            return restTemplate.exchange(buildUri(url, false), HttpMethod.POST, data, ItemCreationResponse.class)
+            return restTemplate.exchange(
+                    buildGroupUri("collections" , groupId, -1, 0, null),
+                    HttpMethod.POST, data, ItemCreationResponse.class)
                     .getBody();
         } catch (RestClientException e) {
             throw new ZoteroConnectionException("Could not create item.", e);

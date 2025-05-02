@@ -204,6 +204,17 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
         return -1;
     }
 
+    /**
+     * Creates a new collection in the specified Zotero group.
+     *
+     * @param groupId           the Zotero group identifier under which the collection will be created
+     * @param collectionName    the name to assign to the new collection
+     * @param parentCollection  the identifier of an existing parent collection to nest under,
+     *                          or {@code null} to create a top-level collection
+     * @return                  an {@link ItemCreationResponse} containing the newly created
+     *                          collection’s metadata as returned by Zotero
+     * @throws ZoteroConnectionException if there is an error communicating with the Zotero API
+     */
     @Override
     public ItemCreationResponse createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException {
         

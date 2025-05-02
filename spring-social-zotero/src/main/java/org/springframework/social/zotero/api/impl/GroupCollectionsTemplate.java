@@ -18,12 +18,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.social.zotero.api.Collection;
 import org.springframework.social.zotero.api.GroupCollectionsOperations;
 import org.springframework.social.zotero.api.Item;
+import org.springframework.social.zotero.api.ItemCreationResponse;
 import org.springframework.social.zotero.api.ZoteroRequestHeaders;
 import org.springframework.social.zotero.api.ZoteroResponse;
+import org.springframework.social.zotero.exception.ZoteroConnectionException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 public class GroupCollectionsTemplate extends AbstractZoteroOperations implements GroupCollectionsOperations {
 
@@ -198,5 +202,40 @@ public class GroupCollectionsTemplate extends AbstractZoteroOperations implement
             }
         }
         return -1;
+    }
+
+    /**
+     * Creates a new collection in the specified Zotero group.
+     *
+     * @param groupId           the Zotero group identifier under which the collection will be created
+     * @param collectionName    the name to assign to the new collection
+     * @param parentCollection  the identifier of an existing parent collection to nest under,
+     *                          or {@code null} to create a top-level collection
+     * @return                  an {@link ItemCreationResponse} containing the newly created
+     *                          collection’s metadata as returned by Zotero
+     * @throws ZoteroConnectionException if there is an error communicating with the Zotero API
+     */
+    @Override
+    public ItemCreationResponse createCollection(String groupId, String collectionName, String parentCollection) throws ZoteroConnectionException {
+        
+        ObjectMapper mapper = new ObjectMapper();
+        
+        JsonNode dataAsJson = mapper.createObjectNode()
+                .put("name", collectionName)
+                .put("parentCollection", parentCollection);
+        
+        ArrayNode jsonArray = mapper.createArrayNode();
+        jsonArray.add(dataAsJson);
+        
+        HttpEntity<ArrayNode> data = new HttpEntity<ArrayNode>(jsonArray);
+        
+        try {
+            return restTemplate.exchange(
+                    buildGroupUri("collections" , groupId, -1, 0, null),
+                    HttpMethod.POST, data, ItemCreationResponse.class)
+                    .getBody();
+        } catch (RestClientException e) {
+            throw new ZoteroConnectionException("Could not create item.", e);
+        }
     }
 }
